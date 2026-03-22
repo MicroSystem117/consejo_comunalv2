@@ -39,8 +39,8 @@ $(document).ready(function() {
                     '<h3 id="modalTitle" style="margin:0 0 20px 0;font-size:1.25rem;">Nueva Entidad</h3>' +
                     '<div id="modalBody"></div>' +
                     '<div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">' +
-                        '<button onclick="closeModal()" style="padding:10px 20px;border-radius:8px;border:1px solid #6c757d;background:white;cursor:pointer;">Cancelar</button>' +
-                        '<button onclick="saveEntity()" style="padding:10px 20px;border-radius:8px;border:none;background:#0d6efd;color:white;cursor:pointer;">Guardar</button>' +
+                        '<button onclick="closeModal()" class="btn btn-outline-secondary">Cancelar</button>' +
+                        '<button onclick="saveEntity()" class="btn btn-primary">Guardar</button>' +
                     '</div>' +
                 '</div>' +
             '</div>';

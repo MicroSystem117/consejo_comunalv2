@@ -82,6 +82,23 @@ if ($action === 'get') {
     exit;
 }
 
+// Get security questions for user
+if ($action === 'getSecQuestion') {
+    $id = $_GET['id'] ?? 0;
+    
+    $stmt = $conn->prepare("SELECT QuestOne, QuestTwo FROM SecQuestion WHERE id_user = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    
+    if ($row = $res->fetch_assoc()) {
+        echo json_encode($row);
+    } else {
+        echo json_encode([]);
+    }
+    exit;
+}
+
 // Create or Update user
 if ($action === 'save') {
     if (!validateCsrfToken()) exit;
@@ -151,6 +168,45 @@ if ($action === 'save') {
         if (!$id_user) {
             $id_user = $stmt->insert_id;
         }
+        
+        // Handle security questions if provided
+        $sq1 = trim($_POST['sq1'] ?? '');
+        $sa1 = trim($_POST['sa1'] ?? '');
+        $sq2 = trim($_POST['sq2'] ?? '');
+        $sa2 = trim($_POST['sa2'] ?? '');
+        
+        if ($sq1 && $sa1 && $sq2 && $sa2) {
+            // Validate questions are distinct
+            if ($sq1 === $sq2) {
+                echo json_encode(['status' => 'error', 'message' => 'Las preguntas de seguridad deben ser distintas']);
+                exit;
+            }
+            
+            // Hash answers
+            $ha1 = password_hash($sa1, PASSWORD_DEFAULT);
+            $ha2 = password_hash($sa2, PASSWORD_DEFAULT);
+            
+            // Check if SecQuestion exists
+            $secStmt = $conn->prepare("SELECT id_SecQuest FROM SecQuestion WHERE id_user = ?");
+            $secStmt->bind_param('i', $id_user);
+            $secStmt->execute();
+            $secRes = $secStmt->get_result();
+            $exists = $secRes->num_rows > 0;
+            $secStmt->close();
+            
+            if ($exists) {
+                $updateSec = $conn->prepare("UPDATE SecQuestion SET QuestOne = ?, QuestTwo = ?, AnswerOne = ?, AnswerTwo = ? WHERE id_user = ?");
+                $updateSec->bind_param('ssssi', $sq1, $sq2, $ha1, $ha2, $id_user);
+                $updateSec->execute();
+                $updateSec->close();
+            } else {
+                $insertSec = $conn->prepare("INSERT INTO SecQuestion (QuestOne, QuestTwo, AnswerOne, AnswerTwo, id_user) VALUES (?, ?, ?, ?, ?)");
+                $insertSec->bind_param('ssssi', $sq1, $sq2, $ha1, $ha2, $id_user);
+                $insertSec->execute();
+                $insertSec->close();
+            }
+        }
+        
         echo json_encode(['status' => 'success', 'message' => $id_user ? 'Usuario actualizado' : 'Usuario creado', 'id_user' => $id_user]);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Error al guardar: ' . $stmt->error]);

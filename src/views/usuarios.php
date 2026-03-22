@@ -116,6 +116,29 @@ try {
                         <small class="text-muted d-block">8+ caracteres, mayúscula, minúscula, número y especial</small>
                     </div>
                     
+                    <hr class="my-3">
+                    <h6 class="fw-bold text-muted mb-3">Preguntas de Seguridad (Opcional)</h6>
+                    
+                    <div class="mb-2">
+                        <label for="sq1" class="form-label small fw-bold">Pregunta 1</label>
+                        <input type="text" class="form-control form-control-sm" id="sq1" name="sq1" placeholder="Ej: ¿Cuál es el nombre de tu primera mascota?">
+                    </div>
+                    
+                    <div class="mb-2">
+                        <label for="sa1" class="form-label small fw-bold">Respuesta 1</label>
+                        <input type="password" class="form-control form-control-sm" id="sa1" name="sa1" placeholder="Respuesta a la pregunta 1">
+                    </div>
+                    
+                    <div class="mb-2">
+                        <label for="sq2" class="form-label small fw-bold">Pregunta 2</label>
+                        <input type="text" class="form-control form-control-sm" id="sq2" name="sq2" placeholder="Ej: ¿En qué ciudad naciste?">
+                    </div>
+                    
+                    <div class="mb-2">
+                        <label for="sa2" class="form-label small fw-bold">Respuesta 2</label>
+                        <input type="password" class="form-control form-control-sm" id="sa2" name="sa2" placeholder="Respuesta a la pregunta 2">
+                    </div>
+                    
                     <div id="userAlert"></div>
                 </div>
                 <div class="modal-footer">
@@ -274,6 +297,9 @@ function editUser(id) {
                 $('#id_level').val(response.id_level || 3);
                 $('#pass').val('').removeAttr('required');
                 
+                // Load security questions
+                getSecQuestion(id);
+                
                 $('#userModalLabel').html('<i class="bi bi-person-gear"></i> Editar Usuario: ' + (response.name || ''));
                 $('#userAlert').html('');
                 $('#userModal').modal('show');
@@ -283,6 +309,29 @@ function editUser(id) {
         },
         error: function() {
             showToast('error', 'Error al cargar usuario');
+        }
+    });
+}
+
+// Get security questions for user
+function getSecQuestion(userId) {
+    $.ajax({
+        url: baseUrl + '/src/controllers/comunity_user.php?mode=getSecQuestion&id=' + userId,
+        type: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            if (response.QuestOne) {
+                $('#sq1').val(response.QuestOne);
+                $('#sq2').val(response.QuestTwo);
+                // Note: Answers are hashed, so we don't load them back
+            } else {
+                $('#sq1').val('');
+                $('#sq2').val('');
+            }
+        },
+        error: function() {
+            $('#sq1').val('');
+            $('#sq2').val('');
         }
     });
 }
