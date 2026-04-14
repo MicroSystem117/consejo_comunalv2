@@ -21,6 +21,10 @@ class DataBase {
             if ($conn->connect_error) {
                 throw new Exception("Error conectando a la BD {$db}: " . $conn->connect_error);
             }
+            // Forzar charset utf8mb4 para evitar problemas de acentos y caracteres especiales
+            if (!$conn->set_charset('utf8mb4')) {
+                throw new Exception("Error configurando charset utf8mb4: " . $conn->error);
+            }
             self::$connections[$key] = $conn;
         }
         return self::$connections[$key];

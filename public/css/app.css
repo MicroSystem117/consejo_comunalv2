@@ -38,6 +38,16 @@ html, body {
     background-color: var(--body-bg);
 }
 
+/* PRUEBA RÁPIDA: si ves este fondo, significa que app.css está cargado */
+body {
+    background-image: linear-gradient(135deg, rgba(200,16,46,0.05), rgba(0,51,160,0.05));
+}
+
+.app-header, .login-header {
+    border: 4px solid #C8102E !important;
+}
+
+
 body {
     display: flex;
     flex-direction: column;
