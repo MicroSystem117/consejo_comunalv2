@@ -1,0 +1,48 @@
+# Custom ignore rules for consejo_comunal
+
+# Environment and configuration files with sensitive data
+config/local.php
+config/database.php
+.env
+.env.local
+.env.production
+*.local
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Backup files
+backups/
+*.bak
+*.backup
+*.sql
+
+# Logs
+*.log
+logs/
+
+# Composer
+vendor/
+composer.lock
+
+# Cache and temporary files
+cache/
+tmp/
+temp/
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+
+# Node.js (if used)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Testing
+.phpunit.result.cache
