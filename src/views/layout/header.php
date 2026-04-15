@@ -21,7 +21,7 @@
         </button>
         <script>function toggleSidebar() { document.querySelector('.app-sidebar').classList.toggle('show'); }</script>
         <div class="logo">
-            <i class="bi bi-building"></i>
+            <img src="<?= $base_url ?>/public/images/logo.png" alt="Consejo Comunal" class="navbar-logo">
             <span>Consejo Comunal</span>
         </div>
         <div class="user-menu">
@@ -201,6 +201,18 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link <?= $active_page === 'calendar' ? 'active' : '' ?>" href="<?= $base_url ?>/index.php?view=calendar">
+                            <i class="bi bi-calendar-event"></i>
+                            Calendario
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $active_page === 'statistics' ? 'active' : '' ?>" href="<?= $base_url ?>/index.php?view=statistics">
+                            <i class="bi bi-bar-chart-line"></i>
+                            Estadísticas
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link <?= $active_page === 'viviendas' ? 'active' : '' ?>" href="<?= $base_url ?>/index.php?view=viviendas">
                             <i class="bi bi-house"></i>
                             Viviendas
@@ -233,6 +245,7 @@
                 </ul>
             </nav>
         </aside>
+        <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
         
         <div class="main-wrapper">
             <main class="main-content">

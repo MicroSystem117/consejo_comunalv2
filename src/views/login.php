@@ -1,12 +1,13 @@
 <?php
 // Vista de Login/Registro
-$title = 'Login - Consejo Comunal';
+$title = 'Login - Emprendedores de los Próceres II Etapa';
 $layout = 'simple';
 ?>
 
-<div class="login-header">
-    <h1><i class="bi bi-building"></i> Consejo Comunal</h1>
-    <p>Sistema de Gestion Comunitaria</p>
+<div class="login-header text-center">
+    <img src="<?= $base_url ?>/public/images/logo.png" alt="Emprendedores de los Próceres II Etapa" class="login-logo mb-3" style="height: 72px; width: auto;">
+    <h1>Emprendedores de los Próceres II Etapa</h1>
+    <p class="text-muted">Sistema de Gestión Comunitaria</p>
 </div>
 
 <div class="login-body">

@@ -150,27 +150,31 @@ $(document).ready(function() {
     }
     
     // Editar persona
-    window.editPerson = function(id) {
-        var personas = window.personas || [];
-        var persona = personas.find(function(p) { return p.id_person == id; });
-        if (persona) {
-            openModal('persona', id);
-            setTimeout(function() {
-                $('#inputName').val(persona.name_person);
-                $('#inputCi').val(persona.ci_person);
-                $('#inputBirth').val(persona.birth_person || '');
-            }, 100);
-        }
-    };
+    if (typeof window.editPerson === 'undefined') {
+        window.editPerson = function(id) {
+            var personas = window.personas || [];
+            var persona = personas.find(function(p) { return p.id_person == id; });
+            if (persona) {
+                openModal('persona', id);
+                setTimeout(function() {
+                    $('#inputName').val(persona.name_person);
+                    $('#inputCi').val(persona.ci_person);
+                    $('#inputBirth').val(persona.birth_person || '');
+                }, 100);
+            }
+        };
+    }
     
     // Eliminar persona
-    window.deletePerson = function(id) {
-        if (!confirm('Esta seguro de eliminar esta persona?')) return;
-        
-        $.post(baseUrl + '/src/controllers/comunity_person.php?action=delete', { id: id }, function() {
-            location.reload();
-        }).fail(function() {
-            alert('Error al eliminar');
-        });
-    };
+    if (typeof window.deletePerson === 'undefined') {
+        window.deletePerson = function(id) {
+            if (!confirm('Esta seguro de eliminar esta persona?')) return;
+            
+            $.post(baseUrl + '/src/controllers/comunity_person.php?action=delete', { id: id }, function() {
+                location.reload();
+            }).fail(function() {
+                alert('Error al eliminar');
+            });
+        };
+    }
 });

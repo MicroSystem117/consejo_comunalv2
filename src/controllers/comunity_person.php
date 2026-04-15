@@ -291,23 +291,14 @@ if ($action === 'update') {
 if ($action === 'delete') {
     $id = intval($_POST['id'] ?? 0);
     if (!$id) { echo json_encode(['status'=>'error','message'=>'id faltante']); exit; }
-    
-    // Verificar si tiene familia asignada
-    $check = $conn->prepare("SELECT id_family FROM person WHERE id_person = ?");
-    $check->bind_param('i', $id);
-    $check->execute();
-    $checkRes = $check->get_result();
-    $person = $checkRes->fetch_assoc();
-    $check->close();
-    
-    if ($person && $person['id_family']) {
-        echo json_encode(['status'=>'error','message'=>'No se puede eliminar: persona tiene familia asignada']);
-        exit;
-    }
-    
+
     $stmt = $conn->prepare("DELETE FROM person WHERE id_person = ?");
-    $stmt->bind_param('i',$id);
-    if ($stmt->execute()) echo json_encode(['status'=>'ok']); else echo json_encode(['status'=>'error','message'=>$conn->error]);
+    $stmt->bind_param('i', $id);
+    if ($stmt->execute()) {
+        echo json_encode(['status'=>'ok']);
+    } else {
+        echo json_encode(['status'=>'error','message'=>$conn->error]);
+    }
     exit;
 }
 

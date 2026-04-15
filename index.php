@@ -49,7 +49,7 @@ if (!$is_logged_in) {
 
 // Si esta logueado, mostrar el panel
 $views_dir = __DIR__ . '/src/views/';
-$allowed_views = ['dashboard', 'personas', 'familias', 'viviendas', 'calles', 'manzana', 'backup', 'usuarios'];
+$allowed_views = ['dashboard', 'personas', 'familias', 'viviendas', 'calles', 'manzana', 'calendar', 'statistics', 'backup', 'usuarios'];
 
 // Obtener vista actual
 $view = $_GET['view'] ?? 'dashboard';
@@ -58,6 +58,24 @@ $view = $_GET['view'] ?? 'dashboard';
 if (!in_array($view, $allowed_views)) {
     $view = 'dashboard';
 }
+
+// Definir página activa para el menú
+$active_page = $view;
+
+// Definir título de vista
+$viewTitles = [
+    'dashboard' => 'Panel',
+    'personas' => 'Personas',
+    'familias' => 'Familias',
+    'viviendas' => 'Viviendas',
+    'calles' => 'Calles',
+    'manzana' => 'Manzana',
+    'calendar' => 'Calendario',
+    'statistics' => 'Estadísticas',
+    'backup' => 'Backup',
+    'usuarios' => 'Usuarios'
+];
+$title = ($viewTitles[$view] ?? ucfirst($view)) . ' - Consejo Comunal';
 
 // Cargar datos segun vista
 $stats = [];
@@ -144,6 +162,47 @@ try {
     $res = $stmt->get_result();
     while ($r = $res->fetch_assoc()) {
         $familias[] = $r;
+    }
+
+    // Obtener total de eventos calendario si existe la tabla
+    $stmt = $conn->prepare("SHOW TABLES LIKE 'calendar_events'");
+    $stmt->execute();
+    $eventsTableExists = $stmt->get_result()->num_rows > 0;
+    $stats['eventos'] = 0;
+    if ($eventsTableExists) {
+        $stmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM calendar_events");
+        $stmt->execute();
+        $stats['eventos'] = $stmt->get_result()->fetch_assoc()['cnt'] ?? 0;
+    }
+
+    if ($view === 'statistics') {
+        $topFamilies = [];
+        $stmt = $conn->prepare(
+            "SELECT f.id_family, f.surname_family, COUNT(p.id_person) AS members, h.number_house, s.codigo_square, st.name_street
+            FROM family f
+            LEFT JOIN person p ON f.id_family = p.id_family
+            LEFT JOIN house h ON f.id_house = h.id_house
+            LEFT JOIN square s ON h.id_square = s.id_square
+            LEFT JOIN street st ON s.id_street = st.id_street
+            GROUP BY f.id_family
+            ORDER BY members DESC, f.surname_family ASC
+            LIMIT 5"
+        );
+        $stmt->execute();
+        $res = $stmt->get_result();
+        while ($r = $res->fetch_assoc()) {
+            $topFamilies[] = $r;
+        }
+
+        $upcomingEvents = [];
+        if ($eventsTableExists) {
+            $stmt = $conn->prepare("SELECT * FROM calendar_events WHERE event_date >= CURDATE() ORDER BY event_date ASC, event_time ASC LIMIT 5");
+            $stmt->execute();
+            $res = $stmt->get_result();
+            while ($r = $res->fetch_assoc()) {
+                $upcomingEvents[] = $r;
+            }
+        }
     }
     
 } catch (Exception $e) {
