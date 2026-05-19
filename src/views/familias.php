@@ -69,7 +69,7 @@ $active_page = 'familias';
                 <h5 class="modal-title" id="familiaModalLabel">Nueva Familia</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="familiaForm" method="POST" action="?view=familias&mode=save">
+            <form id="familiaForm" method="POST" action="?view=familias&mode=save" accept-charset="UTF-8">
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 <div class="modal-body">
                     <div class="mb-3">
@@ -115,7 +115,11 @@ $(document).ready(function() {
                 url: '<?= $base_url ?>/public/vendor/datatables/es-ES.json'
             },
             responsive: true,
-            dom: '<"row"<"col-sm-12"f>t>'
+            paging: true,
+            pagingType: 'simple_numbers',
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'Todos']],
+            dom: '<"row mb-2"<"col-sm-6"l><"col-sm-6"f>>t<"row mt-2"<"col-sm-6"i><"col-sm-6"p>>'
         });
     }
 });
@@ -157,15 +161,52 @@ function editFamilia(id) {
 }
 
 function deleteFamilia(id) {
-    if (confirm('¿Está seguro de eliminar esta familia?')) {
-        $.post('?view=familias&mode=delete', { id_family: id, csrf_token: '<?php echo $_SESSION['csrf_token']; ?>' }, function(response) {
-            if (response.success) {
-                showToast('success', response.message);
-                setTimeout(() => window.location.reload(), 1500);
-            } else {
-                showToast('error', response.message);
-            }
-        }, 'json');
-    }
+    showConfirm('¿Eliminar familia?', '¿Está seguro de eliminar esta familia? Esta acción no se puede deshacer.', 'Eliminar', 'Cancelar')
+        .then(function(confirmed) {
+            if (!confirmed) return;
+
+            $.post('?view=familias&mode=delete', { id_family: id, csrf_token: '<?php echo $_SESSION['csrf_token']; ?>' }, function(response) {
+                if (response.success) {
+                    showToast('success', response.message);
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showToast('error', response.message);
+                }
+            }, 'json');
+        });
 }
+
+// Función para restringir entrada en campos
+function restrictInput(input, regex) {
+    let isComposing = false;
+    
+    input.addEventListener('compositionstart', () => isComposing = true);
+    input.addEventListener('compositionend', () => {
+        isComposing = false;
+        // Filtrar después de composición
+        input.value = input.value.replace(regex, '');
+    });
+    
+    input.addEventListener('input', function() {
+        if (!isComposing) {
+            this.value = this.value.replace(regex, '');
+        }
+    });
+    
+    input.addEventListener('paste', function(e) {
+        let paste = (e.clipboardData || window.clipboardData).getData('text');
+        let cleaned = paste.replace(regex, '');
+        if (cleaned !== paste) {
+            e.preventDefault();
+            this.value += cleaned;
+        }
+    });
+}
+
+// Aplicar restricciones a los campos
+document.addEventListener('DOMContentLoaded', function() {
+    // Campo de solo letras: Apellido Familia
+    let letterRegex = /[^\p{L}\s]/gu;
+    restrictInput(document.querySelector('input[name="surname_family"]'), letterRegex);
+});
 </script>

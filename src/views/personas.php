@@ -52,14 +52,26 @@ $personas = obtenerTodasLasPersonas();
                         <td><?= number_format($p['ci_person'], 0, '', '.') ?></td>
                         <td><?= $p['birth_person'] ? date('d/m/Y', strtotime($p['birth_person'])) : '-' ?></td>
                         <td><?= htmlspecialchars($p['surname_family'] ?? 'Sin asignar') ?></td>
+                        <?php $userLevel = $_SESSION['id_level'] ?? 3; ?>
                         <td class="actions">
-                            <button class="btn btn-sm btn-warning" onclick="editPerson(<?= $p['id_person'] ?>)">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deletePerson(<?= $p['id_person'] ?>)">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                            <!-- Botón PDF corregido -->
+                            <?php if (in_array($userLevel, [1, 2, 3], true)): ?>
+                                <button class="btn btn-sm btn-info" onclick="showMoreInfo(<?= $p['id_person'] ?>)">
+                                    <i class="bi bi-info-circle"></i>
+                                </button>
+                            <?php endif; ?>
+
+                            <?php if (in_array($userLevel, [1, 2], true)): ?>
+                                <button class="btn btn-sm btn-warning" onclick="editPerson(<?= $p['id_person'] ?>)">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            <?php endif; ?>
+
+                            <?php if ($userLevel === 1): ?>
+                                <button class="btn btn-sm btn-danger" onclick="deletePerson(<?= $p['id_person'] ?>)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            <?php endif; ?>
+
                             <a class="btn btn-sm btn-success" href="src/controllers/comunity_person.php?action=pdf&id=<?= $p['id_person'] ?>" target="_blank" title="Generar Constancia PDF">
                                 <i class="bi bi-file-earmark-pdf"></i>
                             </a>
@@ -83,7 +95,7 @@ $personas = obtenerTodasLasPersonas();
                 <h5 class="modal-title" id="personaModalLabel">Nueva Persona</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="personaForm" method="POST" action="">
+            <form id="personaForm" method="POST" action="" accept-charset="UTF-8">
                 <input type="hidden" id="id_person" name="id_person" value="">
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 <div class="modal-body">
@@ -93,7 +105,7 @@ $personas = obtenerTodasLasPersonas();
                     </div>
                     <div class="mb-3">
                         <label for="ci_person" class="form-label">Cédula de Identidad</label>
-                        <input type="number" class="form-control" id="ci_person" name="ci_person" required placeholder="Ej: 12345678">
+                        <input type="number" class="form-control" id="ci_person" name="ci_person" required placeholder="Ej: 12345678" maxlength="9" max="999999999" oninput="if(this.value.length>9) this.value=this.value.slice(0,9);">
                     </div>
                     <div class="mb-3">
                         <label for="birth_person" class="form-label">Fecha de Nacimiento</label>
@@ -139,6 +151,124 @@ $personas = obtenerTodasLasPersonas();
         </div>
     </div>
 </div>
+
+        <style>
+        /* Forzamos al elemento raíz del modal a usar toda la pantalla real solo cuando está visible */
+        body div#personInfoModal.modal.show {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            z-index: 1060 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background-color: transparent !important;
+            transform: none !important;
+        }
+
+        /* Hidden bootstrap modal fallback */
+        body div#personInfoModal.modal:not(.show) {
+            display: none !important;
+        }
+
+        /* Forzamos al cuadro dialog a desvincularse de la columna izquierda */
+        body div#personInfoModal.modal.show .modal-dialog {
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important; /* Centrado matemático perfecto en pantalla */
+            margin: 0 !important;
+            width: 85% !important;
+            max-width: 850px !important;
+        }
+
+        /* Asegurar transparencia de los contenedores intermedios */
+        body div#personInfoModal .modal-content,
+        body div#personInfoModal .modal-body {
+            background: transparent !important;
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            width: 100% !important;
+        }
+
+        /* Estilo estricto para las tarjetas flotantes */
+        body div#personInfoModal .info-card {
+            background: #ffffff !important;
+            border-radius: 16px !important;
+            border: none !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        /* Título superior en blanco para resaltar con el desenfoque */
+        body div#personInfoModal .modal-title {
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.4) !important;
+        }
+
+        /* Poner la X de cerrar en blanco */
+        body div#personInfoModal .btn-close {
+            filter: invert(1) grayscale(1) brightness(2) !important;
+        }
+        </style>
+
+        <!-- Modal Más Información: Vivienda y Familia (rediseñado con cards y glassmorphism) -->
+        <div class="modal fade" id="personInfoModal" tabindex="-1" aria-labelledby="personInfoModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content border-0 bg-transparent">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title" id="personInfoModalLabel">Información de Persona</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="container-fluid">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="card info-card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Datos personales</h6>
+                                            <p class="mb-1"><strong>Nombre:</strong> <span id="info_name">-</span></p>
+                                            <p class="mb-1"><strong>Cédula:</strong> <span id="info_ci">-</span></p>
+                                            <p class="mb-1"><strong>Fecha Nac.:</strong> <span id="info_birth">-</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card info-card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Vivienda</h6>
+                                            <p class="mb-1"><strong>Número Vivienda:</strong> <span id="info_number_house">-</span></p>
+                                            <p class="mb-1"><strong>Manzana (Código):</strong> <span id="info_codigo_square">-</span></p>
+                                            <p class="mb-1"><strong>Calle:</strong> <span id="info_name_street">-</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="card info-card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Familia</h6>
+                                            <p class="mb-1"><strong>Apellido Familia:</strong> <span id="info_surname">-</span></p>
+                                            <p class="mb-1"><strong>ID Familia:</strong> <span id="info_id_family">-</span></p>
+                                            <hr>
+                                            <h6 class="small mb-2">Miembros</h6>
+                                            <ul id="info_members" class="list-unstyled small mb-0"></ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
 <script>
 var baseUrl = '<?= $base_url ?>';
@@ -199,7 +329,11 @@ $(document).ready(function() {
         $table.DataTable({
             language: { url: baseUrl + '/public/vendor/datatables/es-ES.json' },
             responsive: true,
-            dom: '<"row"<"col-sm-12"f>t>'
+            paging: true,
+            pagingType: 'simple_numbers',
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'Todos']],
+            dom: '<"row mb-2"<"col-sm-6"l><"col-sm-6"f>>t<"row mt-2"<"col-sm-6"i><"col-sm-6"p>>'
         });
     }
 
@@ -278,20 +412,108 @@ function editPerson(id) {
 }
 
 function deletePerson(id) {
-    if (!confirm('¿Está seguro de eliminar esta persona?')) {
-        return;
-    }
+    showConfirm('¿Eliminar persona?', '¿Está seguro de eliminar esta persona? Esta acción no se puede deshacer.', 'Eliminar', 'Cancelar')
+        .then(function(confirmed) {
+            if (!confirmed) return;
 
-    $.post('src/controllers/comunity_person.php?action=delete', {
-        id: id,
-        csrf_token: '<?php echo $_SESSION['csrf_token']; ?>'
-    }, function(response) {
-        if (response.status === 'ok') {
-            showToast('success', 'Persona eliminada correctamente');
-            setTimeout(function() { window.location.reload(); }, 700);
-        } else {
-            showToast('error', response.message || 'No se pudo eliminar la persona');
-        }
-    }, 'json');
+            $.post('src/controllers/comunity_person.php?action=delete', {
+                id: id,
+                csrf_token: '<?php echo $_SESSION['csrf_token']; ?>'
+            }, function(response) {
+                if (response.status === 'ok') {
+                    showToast('success', 'Persona eliminada correctamente');
+                    setTimeout(function() { window.location.reload(); }, 700);
+                } else {
+                    showToast('error', response.message || 'No se pudo eliminar la persona');
+                }
+            }, 'json');
+        });
 }
+
+function showMoreInfo(id) {
+    $.getJSON(baseUrl + '/src/controllers/comunity_person.php?action=details&id=' + id, function(response) {
+        if (response.status !== 'ok') {
+            showToast('error', response.message || 'No se pudo obtener información');
+            return;
+        }
+
+        var data = response.data;
+        var person = data.person || {};
+        var members = data.members || [];
+
+        $('#info_name').text(person.name_person || '-');
+        $('#info_ci').text(person.ci_person || '-');
+        $('#info_birth').text(person.birth_person ? new Date(person.birth_person).toLocaleDateString() : '-');
+        $('#info_surname').text(person.surname_family || '-');
+        $('#info_id_family').text(person.id_family || '-');
+        $('#info_number_house').text(person.number_house || '-');
+        $('#info_codigo_square').text(person.codigo_square || '-');
+        $('#info_name_street').text(person.name_street || '-');
+
+        var $members = $('#info_members');
+        $members.empty();
+        if (members.length === 0) {
+            $members.append('<li class="list-group-item small text-muted">No hay miembros registrados</li>');
+        } else {
+            members.forEach(function(m) {
+                var b = m.birth_person ? (new Date(m.birth_person)).toLocaleDateString() : '-';
+                $members.append('<li class="list-group-item small">' + $('<div>').text(m.name_person).html() + ' — C.I. ' + (m.ci_person || '-') + ' — Nac: ' + b + '</li>');
+            });
+        }
+
+        var modalEl = document.getElementById('personInfoModal');
+        var modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }).fail(function() {
+        showToast('error', 'Error al solicitar información');
+    });
+}
+
+// Función para restringir entrada en campos
+function restrictInput(input, regex) {
+    let isComposing = false;
+    
+    input.addEventListener('compositionstart', () => isComposing = true);
+    input.addEventListener('compositionend', () => {
+        isComposing = false;
+        // Filtrar después de composición
+        input.value = input.value.replace(regex, '');
+    });
+    
+    input.addEventListener('input', function() {
+        if (!isComposing) {
+            this.value = this.value.replace(regex, '');
+        }
+    });
+    
+    input.addEventListener('paste', function(e) {
+        let paste = (e.clipboardData || window.clipboardData).getData('text');
+        let cleaned = paste.replace(regex, '');
+        if (cleaned !== paste) {
+            e.preventDefault();
+            this.value += cleaned;
+        }
+    });
+}
+
+// Aplicar restricciones a los campos
+document.addEventListener('DOMContentLoaded', function() {
+    // Campos de solo letras: Nombre y Apellido
+    let letterRegex = /[^\p{L}\s]/gu;
+    restrictInput(document.querySelector('input[name="name_person"]'), letterRegex);
+    restrictInput(document.querySelector('input[name="surname_family"]'), letterRegex);
+    
+    // Campo de solo números: Cédula
+    let numberRegex = /[^\d]/g;
+    restrictInput(document.querySelector('input[name="ci_person"]'), numberRegex);
+});
+
+// Añadir clase al body cuando el modal de info está abierto para estilizar el backdrop
+$(document).on('show.bs.modal', '#personInfoModal', function() {
+    $('body').addClass('person-info-open');
+});
+
+$(document).on('hidden.bs.modal', '#personInfoModal', function() {
+    $('body').removeClass('person-info-open');
+});
 </script>

@@ -17,17 +17,17 @@ function listTables($mysqli) {
 }
 
 try {
-    echo "Checking credentials DB...\n";
+    echo "Checking unified comunity DB via DbUser...\n";
     $u = new DbUser();
     $conn1 = $u->getConnection();
-    if ($conn1->connect_error) throw new Exception('credentials connect error: '.$conn1->connect_error);
+    if ($conn1->connect_error) throw new Exception('comunity connect error: '.$conn1->connect_error);
     $res = $conn1->query("SELECT DATABASE() AS dbname");
     $db = $res ? $res->fetch_assoc()['dbname'] : '(unknown)';
     echo "Connected to: $db\n";
     $tables = listTables($conn1);
-    echo "Tables (credentials): " . implode(', ', array_slice($tables,0,10)) . "\n\n";
+    echo "Tables (unified): " . implode(', ', array_slice($tables,0,10)) . "\n\n";
 
-    echo "Checking comunity DB...\n";
+    echo "Checking comunity DB via ComunityDb...\n";
     $c = new ComunityDb();
     $conn2 = $c->getConnection();
     if ($conn2->connect_error) throw new Exception('comunity connect error: '.$conn2->connect_error);

@@ -10,7 +10,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-session_start();
+// Start session only if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // CSRF Validation
 function validateCsrfToken() {
@@ -36,13 +39,6 @@ if ($method !== 'POST') {
     exit;
 }
 
-// Debug: Log the received action
-$received_action = $_POST['action'] ?? 'NOT SET IN POST';
-$query_action = $_GET['action'] ?? 'NOT SET IN GET';
-error_log("Received POST action: " . $received_action);
-error_log("Received GET action: " . $query_action);
-error_log("All POST data: " . print_r($_POST, true));
-
 $action = $_POST['action'] ?? 'login';
 
 // Base URL for redirects
@@ -50,8 +46,11 @@ $base_url = '/consejo_comunalv2.0.0';
 
 // Logout action
 if ($action === 'logout') {
-    session_start();
+    // Regenerate session ID to prevent session hijacking
+    session_regenerate_id(true);
+    // Clear all session variables
     $_SESSION = [];
+    // Destroy the session
     session_destroy();
     echo json_encode(['status' => 'success', 'message' => 'Sesion cerrada', 'redirect' => $base_url . '/']);
     exit;
@@ -366,7 +365,9 @@ if ($action === 'register') {
     if ($stmt->execute()) {
         $_SESSION['user_id'] = $stmt->insert_id;
         $inserted_id = $stmt->insert_id;
-        echo json_encode(['status' => 'success', 'message' => 'Registro exitoso', 'user_id' => $inserted_id, 'ci' => $ci]);
+        // Regenerate session ID for security
+        session_regenerate_id(true);
+        echo json_encode(['status' => 'success', 'message' => 'Registro exitoso', 'user_id' => $inserted_id, 'ci' => $ci, 'redirect' => $base_url . '/index.php']);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Error al registrar']);
     }
@@ -466,7 +467,7 @@ if ($action === 'login') {
         exit;
     }
     
-    $stmt = $conn->prepare("SELECT id_user, pass, name FROM `user` WHERE ci = ?");
+    $stmt = $conn->prepare("SELECT id_user, pass, name, surname, ci, birth, id_level FROM `user` WHERE ci = ?");
     $stmt->bind_param('i', $ci);
     $stmt->execute();
     $res = $stmt->get_result();
@@ -474,7 +475,14 @@ if ($action === 'login') {
         $row = $res->fetch_assoc();
         if (password_verify($pass, $row['pass'])) {
             $_SESSION['user_id'] = $row['id_user'];
+            $_SESSION['id_level'] = (int) ($row['id_level'] ?? 3);
             $_SESSION['user_name'] = $row['name'];
+            $_SESSION['user_surname'] = $row['surname'];
+            $_SESSION['user_fullname'] = trim($row['name'] . ' ' . $row['surname']);
+            $_SESSION['user_ci'] = $row['ci'];
+            $_SESSION['user_birth'] = $row['birth'];
+            // Regenerate session ID to prevent fixation
+            session_regenerate_id(true);
             // reset attempts on success
             reset_attempts($conn, $ci, 'login', $ip);
             echo json_encode(['status' => 'success', 'message' => 'Autenticacion correcta', 'redirect' => $base_url . '/']);

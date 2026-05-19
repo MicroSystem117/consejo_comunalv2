@@ -29,7 +29,6 @@ $active_page = 'viviendas';
                 <th>Número</th>
                 <th>Manzana</th>
                 <th>Calle</th>
-                <th>Tipo</th>
                 <th>Acciones</th>
             </tr>
         </thead>
@@ -41,7 +40,6 @@ $active_page = 'viviendas';
                         <td><?= htmlspecialchars($v['number_house']) ?></td>
                         <td><?= htmlspecialchars($v['codigo_square'] ?? 'Sin asignar') ?></td>
                         <td><?= htmlspecialchars($v['name_street'] ?? 'Sin asignar') ?></td>
-                        <td><?= htmlspecialchars($v['type_house'] ?? '-') ?></td>
                         <td class="actions">
                             <button class="btn btn-sm btn-warning" onclick="editVivienda(<?= $v['id_house'] ?>)">
                                 <i class="bi bi-pencil"></i>
@@ -54,7 +52,7 @@ $active_page = 'viviendas';
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="6" class="text-center text-muted">No hay viviendas registradas</td>
+                    <td colspan="5" class="text-center text-muted">No hay viviendas registradas</td>
                 </tr>
             <?php endif; ?>
         </tbody>
@@ -69,7 +67,7 @@ $active_page = 'viviendas';
                 <h5 class="modal-title" id="viviendaModalLabel">Nueva Vivienda</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="viviendaForm" method="POST" action="?view=viviendas&mode=save">
+            <form id="viviendaForm" method="POST" action="?view=viviendas&mode=save" accept-charset="UTF-8">
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 <div class="modal-body">
                     <div class="mb-3">
@@ -89,15 +87,7 @@ $active_page = 'viviendas';
                             <?php endif; ?>
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label for="type_house" class="form-label">Tipo de Vivienda</label>
-                        <select class="form-select" id="type_house" name="type_house">
-                            <option value="Casa">Casa</option>
-                            <option value="Apartamento">Apartamento</option>
-                            <option value="Rancho">Rancho</option>
-                            <option value="Otro">Otro</option>
-                        </select>
-                    </div>
+                    <!-- Tipo de vivienda eliminado: no existe columna en la tabla `house` -->
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -120,7 +110,11 @@ $(document).ready(function() {
                 url: '<?= $base_url ?>/public/vendor/datatables/es-ES.json'
             },
             responsive: true,
-            dom: '<"row"<"col-sm-12"f>t>'
+            paging: true,
+            pagingType: 'simple_numbers',
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'Todos']],
+            dom: '<"row mb-2"<"col-sm-6"l><"col-sm-6"f>>t<"row mt-2"<"col-sm-6"i><"col-sm-6"p>>'
         });
     }
 });
@@ -149,28 +143,41 @@ $('#viviendaForm').on('submit', function(e) {
     });
 });
 
+function resetViviendaForm() {
+    $('#viviendaForm')[0].reset();
+    $('#viviendaForm').find('input[name="id_house"]').remove();
+    $('#viviendaModalLabel').text('Nueva Vivienda');
+}
+
 function editVivienda(id) {
     // Load vivienda data and populate form
     $.getJSON('?view=viviendas&mode=get&id=' + id, function(data) {
+        resetViviendaForm();
         $('#viviendaModalLabel').text('Editar Vivienda');
         $('input[name="number_house"]').val(data.number_house);
         $('select[name="id_square"]').val(data.id_square);
-        $('select[name="type_house"]').val(data.type_house);
         $('#viviendaForm').append('<input type="hidden" name="id_house" value="' + id + '">');
         $('#viviendaModal').modal('show');
     });
 }
 
+$('#viviendaModal').on('hidden.bs.modal', function() {
+    resetViviendaForm();
+});
+
 function deleteVivienda(id) {
-    if (confirm('¿Está seguro de eliminar esta vivienda?')) {
-        $.post('?view=viviendas&mode=delete', { id_house: id, csrf_token: '<?php echo $_SESSION['csrf_token']; ?>' }, function(response) {
-            if (response.success) {
-                showToast('success', response.message);
-                setTimeout(() => window.location.reload(), 1500);
-            } else {
-                showToast('error', response.message);
-            }
-        }, 'json');
-    }
+    showConfirm('¿Eliminar vivienda?', '¿Está seguro de eliminar esta vivienda? Esta acción no se puede deshacer.', 'Eliminar', 'Cancelar')
+        .then(function(confirmed) {
+            if (!confirmed) return;
+
+            $.post('?view=viviendas&mode=delete', { id_house: id, csrf_token: '<?php echo $_SESSION['csrf_token']; ?>' }, function(response) {
+                if (response.success) {
+                    showToast('success', response.message);
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showToast('error', response.message);
+                }
+            }, 'json');
+        });
 }
 </script>

@@ -6,6 +6,7 @@
     <!-- jQuery ya cargado en header -->
     <script src="<?= $base_url ?>/public/vendor/bootstrap-5.3.8-dist/js/bootstrap.bundle.min.js"></script>
     <script src="<?= $base_url ?>/public/js/comunity.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <script src="<?= $base_url ?>/public/js/app.js"></script>
     <script src="<?= $base_url ?>/public/vendor/datatables/jquery.dataTables.min.js"></script>
     
@@ -31,10 +32,6 @@
         
         function openPasswordModal() {
             $('#passwordModal').modal('show');
-        }
-        
-        function openSecurityQuestionsModal() {
-            $('#securityQuestionsModal').modal('show');
         }
         
         // Toggle Password Visibility
@@ -161,57 +158,6 @@
             });
         });
         
-        // Security questions form handler
-        $('#securityQuestionsForm').on('submit', function(e) {
-            e.preventDefault();
-            
-            var sq1 = $('#sq1').val();
-            var sa1 = $('#sa1').val().trim();
-            var sq2 = $('#sq2').val();
-            var sa2 = $('#sa2').val().trim();
-            
-            if (!sq1 || !sa1 || !sq2 || !sa2) {
-                showToast('error', 'Por favor completa todas las preguntas y respuestas');
-                return;
-            }
-            
-            if (sq1 === sq2) {
-                showToast('error', 'Las preguntas deben ser diferentes');
-                return;
-            }
-            
-            $.ajax({
-                url: $(this).attr('action'),
-                type: 'POST',
-                data: $(this).serialize() + '&action=security_questions',
-                dataType: 'json',
-                success: function(response) {
-                    console.log('Response:', response);
-                    if (response.status === 'success' || response.success === true) {
-                        $('#securityQuestionsModal').modal('hide');
-                        showToast('success', response.message);
-                        $('#sq1, #sq2').val('');
-                        $('#sa1, #sa2').val('');
-                        $('#sqAlert').html('');
-                    } else {
-                        showToast('error', response.message);
-                    }
-                },
-                error: function(xhr) {
-                    console.log('Error status:', xhr.status);
-                    console.log('Error response:', xhr.responseText);
-                    var errorMsg = 'Error al procesar la solicitud';
-                    if (xhr.responseText) {
-                        try {
-                            var resp = JSON.parse(xhr.responseText);
-                            if (resp.message) errorMsg = resp.message;
-                        } catch(e) {}
-                    }
-                    showToast('error', errorMsg);
-                }
-            });
-        });
-        
         // Initialize tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.map(function(tooltipTriggerEl) {
@@ -225,6 +171,7 @@
     <!-- jQuery ya cargado en header -->
     <script src="<?= $base_url ?>/public/vendor/bootstrap-5.3.8-dist/js/bootstrap.bundle.min.js"></script>
     <script src="<?= $base_url ?>/public/js/comunity.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <script src="<?= $base_url ?>/public/js/app.js"></script>
 <?php endif; ?>
 </body>

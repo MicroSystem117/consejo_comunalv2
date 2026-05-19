@@ -296,6 +296,7 @@ Comunity.Modal = {
     }
 };
 
+// Registro exitoso
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', function() {
     Comunity.CSRF.init();

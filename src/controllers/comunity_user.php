@@ -1,7 +1,7 @@
 <?php
 /**
  * Controller for User Management (CRUD)
- * Handles user accounts from the credentials database
+ * Handles user accounts in the unified comunity database
  */
 
 require_once __DIR__ . "/../models/dbuser.php";

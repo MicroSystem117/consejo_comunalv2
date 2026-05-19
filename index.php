@@ -6,6 +6,11 @@
  * Redirige a login si no esta autenticado
  */
 
+// Configurar codificación UTF-8 para toda la aplicación
+ini_set('default_charset', 'UTF-8');
+mb_internal_encoding('UTF-8');
+header('Content-Type: text/html; charset=utf-8');
+
 // Definir URL base para recursos estaticos
 $base_url = '/consejo_comunalv2.0.0';
 
@@ -16,6 +21,9 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 $csrf_token = $_SESSION['csrf_token'];
+
+// Cargar reglas de acceso RBAC
+require_once __DIR__ . '/config/permissions.php';
 
 // Verificar si esta logueado
 $is_logged_in = isset($_SESSION['user_id']);
@@ -61,6 +69,12 @@ if (!in_array($view, $allowed_views)) {
 
 // Definir página activa para el menú
 $active_page = $view;
+
+// Validar permisos RBAC para la vista solicitada
+if (!validarAccesoVista($view)) {
+    header("Location: {$base_url}/index.php?view=dashboard&error=unauthorized");
+    exit;
+}
 
 // Definir título de vista
 $viewTitles = [
@@ -472,7 +486,6 @@ if ($view === 'viviendas' && isset($_GET['mode'])) {
         try {
             $number_house = $_POST['number_house'] ?? '';
             $id_square = $_POST['id_square'] ?? '';
-            $type_house = $_POST['type_house'] ?? '';
             $id_house = $_POST['id_house'] ?? null;
             
             if (empty($number_house) || empty($id_square)) {
@@ -480,11 +493,11 @@ if ($view === 'viviendas' && isset($_GET['mode'])) {
             }
             
             if ($id_house) {
-                $stmt = $conn->prepare("UPDATE house SET number_house = ?, id_square = ?, type_house = ? WHERE id_house = ?");
-                $stmt->bind_param('sisi', $number_house, $id_square, $type_house, $id_house);
+                $stmt = $conn->prepare("UPDATE house SET number_house = ?, id_square = ? WHERE id_house = ?");
+                $stmt->bind_param('sii', $number_house, $id_square, $id_house);
             } else {
-                $stmt = $conn->prepare("INSERT INTO house (number_house, id_square, type_house) VALUES (?, ?, ?)");
-                $stmt->bind_param('sis', $number_house, $id_square, $type_house);
+                $stmt = $conn->prepare("INSERT INTO house (number_house, id_square) VALUES (?, ?)");
+                $stmt->bind_param('si', $number_house, $id_square);
             }
             
             if ($stmt->execute()) {

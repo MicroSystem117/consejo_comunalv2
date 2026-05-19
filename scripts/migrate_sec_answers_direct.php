@@ -1,11 +1,12 @@
 <?php
-// Direct migration script: connect to 'credentials' DB and hash SecQuestion answers.
+// Direct migration script: connect to unified 'comunity' DB and hash SecQuestion answers.
 // Usage: php scripts/migrate_sec_answers_direct.php
+// Run this after the credentials schema has been merged into comunity.
 
 $host = '127.0.0.1';
 $user = 'root';
 $pass = '';
-$db = 'credentials';
+$db = 'comunity';
 
 $mysqli = new mysqli($host, $user, $pass, $db);
 if ($mysqli->connect_errno) {
@@ -13,7 +14,7 @@ if ($mysqli->connect_errno) {
     exit(1);
 }
 
-echo "Connected to {$db}\n";
+echo "Connected to unified {$db} DB\n";
 
 $res = $mysqli->query("SELECT id_SecQuest, AnswerOne, AnswerTwo FROM SecQuestion");
 if (!$res) {

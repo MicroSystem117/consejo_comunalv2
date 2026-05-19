@@ -71,7 +71,7 @@ try {
                 <h5 class="modal-title" id="userModalLabel"><i class="bi bi-person-plus"></i> Nuevo Usuario</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="userForm" method="POST">
+            <form id="userForm" method="POST" accept-charset="UTF-8">
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 <input type="hidden" name="id_user" id="id_user" value="">
                 <div class="modal-body">
@@ -92,7 +92,7 @@ try {
                     
                     <div class="mb-2">
                         <label for="ci" class="form-label small fw-bold">Cédula *</label>
-                        <input type="number" class="form-control form-control-sm" id="ci" name="ci" required placeholder="Cédula de identidad">
+                        <input type="number" class="form-control form-control-sm" id="ci" name="ci" required placeholder="Cédula de identidad" maxlength="9" max="999999999" oninput="if(this.value.length>9) this.value=this.value.slice(0,9);">
                     </div>
                     
                     <div class="mb-2">
@@ -161,7 +161,7 @@ var usersTable;
 
 $(document).ready(function() {
     // Initialize DataTable
-    usersTable = $('#usersTable').DataTable({
+        usersTable = $('#usersTable').DataTable({
         ajax: {
             url: baseUrl + '/src/controllers/comunity_user.php?mode=list',
             dataSrc: 'data'
@@ -206,6 +206,11 @@ $(document).ready(function() {
         language: {
             url: baseUrl + '/public/vendor/datatables/es-ES.json'
         },
+        paging: true,
+        pagingType: 'simple_numbers',
+        pageLength: 10,
+        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'Todos']],
+        dom: '<"row mb-2"<"col-sm-6"l><"col-sm-6"f>>t<"row mt-2"<"col-sm-6"i><"col-sm-6"p>>',
         order: [[0, 'desc']]
     });
     
@@ -338,29 +343,32 @@ function getSecQuestion(userId) {
 
 // Delete user
 function deleteUser(id, name) {
-    if (confirm('¿Está seguro de eliminar al usuario ' + (name || 'ID: ' + id) + '?')) {
-        $.ajax({
-            url: baseUrl + '/src/controllers/comunity_user.php',
-            type: 'POST',
-            data: {
-                action: 'delete',
-                csrf_token: csrfToken,
-                id_user: id
-            },
-            dataType: 'json',
-            success: function(response) {
-                if (response.status === 'success') {
-                    usersTable.ajax.reload();
-                    showToast('success', response.message);
-                } else {
-                    showToast('error', response.message);
+    showConfirm('¿Eliminar usuario?', '¿Está seguro de eliminar al usuario ' + (name || 'ID: ' + id) + '?', 'Eliminar', 'Cancelar')
+        .then(function(confirmed) {
+            if (!confirmed) return;
+
+            $.ajax({
+                url: baseUrl + '/src/controllers/comunity_user.php',
+                type: 'POST',
+                data: {
+                    action: 'delete',
+                    csrf_token: csrfToken,
+                    id_user: id
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        usersTable.ajax.reload();
+                        showToast('success', response.message);
+                    } else {
+                        showToast('error', response.message);
+                    }
+                },
+                error: function() {
+                    showToast('error', 'Error al eliminar usuario');
                 }
-            },
-            error: function() {
-                showToast('error', 'Error al eliminar usuario');
-            }
+            });
         });
-    }
 }
 
 // Show toast notification
@@ -387,4 +395,43 @@ function showToast(type, message) {
         $(this).parent().remove();
     });
 }
+
+// Función para restringir entrada en campos
+function restrictInput(input, regex) {
+    let isComposing = false;
+    
+    input.addEventListener('compositionstart', () => isComposing = true);
+    input.addEventListener('compositionend', () => {
+        isComposing = false;
+        // Filtrar después de composición
+        input.value = input.value.replace(regex, '');
+    });
+    
+    input.addEventListener('input', function() {
+        if (!isComposing) {
+            this.value = this.value.replace(regex, '');
+        }
+    });
+    
+    input.addEventListener('paste', function(e) {
+        let paste = (e.clipboardData || window.clipboardData).getData('text');
+        let cleaned = paste.replace(regex, '');
+        if (cleaned !== paste) {
+            e.preventDefault();
+            this.value += cleaned;
+        }
+    });
+}
+
+// Aplicar restricciones a los campos
+document.addEventListener('DOMContentLoaded', function() {
+    // Campos de solo letras: Nombre y Apellido
+    let letterRegex = /[^\p{L}\s]/gu;
+    restrictInput(document.querySelector('input[name="name"]'), letterRegex);
+    restrictInput(document.querySelector('input[name="surname"]'), letterRegex);
+    
+    // Campo de solo números: Cédula
+    let numberRegex = /[^\d]/g;
+    restrictInput(document.querySelector('input[name="ci"]'), numberRegex);
+});
 </script>

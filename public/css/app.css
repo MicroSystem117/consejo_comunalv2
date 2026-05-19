@@ -99,6 +99,84 @@ body {
     display: block;
 }
 
+.navbar-logo,
+.login-logo {
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.user-avatar.small {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    font-weight: 700;
+    border: 1px solid rgba(255,255,255,0.25);
+    text-transform: uppercase;
+}
+
+.dropdown-menu.user-profile-menu {
+    min-width: 260px;
+    background: var(--light-color);
+    color: var(--dark-color);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    border: 1px solid rgba(0,0,0,0.06);
+}
+
+.user-menu .dropdown-menu.user-profile-menu {
+    right: 0 !important;
+    left: auto !important;
+}
+
+.user-profile-menu .dropdown-item {
+    color: var(--dark-color) !important;
+    background: transparent !important;
+}
+
+.user-profile-menu .dropdown-item:hover {
+    background: rgba(0,0,0,0.04) !important;
+}
+
+.user-profile-menu .dropdown-divider {
+    border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+.user-profile-menu .user-avatar {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+}
+
+.user-profile-menu .small.text-muted {
+    color: rgba(0,0,0,0.6) !important;
+}
+
+.profile-modal .modal-content {
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.profile-modal .modal-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+}
+
+.profile-modal .modal-body p {
+    margin-bottom: 0.75rem;
+}
+
+.profile-modal .modal-body p strong {
+    display: inline-block;
+    width: 130px;
+}
+
 .calendar-page .calendar-header {
     gap: 10px;
     flex-wrap: wrap;
@@ -317,6 +395,65 @@ body {
     background: white;
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
+}
+
+/* DataTables - Estilos de paginación y controles */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    padding: .25rem .5rem;
+    margin: 0 .15rem;
+    border-radius: .25rem;
+    border: 1px solid rgba(0,0,0,0.06);
+    background: #fff;
+    color: #212529;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.active {
+    background: var(--primary-color);
+    color: #fff !important;
+    border-color: var(--primary-color);
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: rgba(0,0,0,0.04);
+    color: #212529;
+}
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    height: calc(1.5em + .5rem);
+    padding: .25rem .5rem;
+    border-radius: .25rem;
+}
+.dataTables_wrapper .dataTables_length select {
+    min-width: 90px;
+}
+
+/* Ajustes finos para alineación */
+.dataTables_wrapper .dataTables_info {
+    padding-top: .375rem;
+}
+
+/* Dashboard stats and charts sizing */
+.dashboard-stat-card .dashboard-stat-icon {
+    font-size: 1.6rem !important;
+}
+
+.dashboard-stat-card .dashboard-stat-number {
+    font-size: 2rem !important;
+    margin-top: 1rem;
+}
+
+.dashboard-stat-card .dashboard-stat-label {
+    font-size: 0.95rem;
+    margin-bottom: 0;
+}
+
+.dashboard-chart-card .card-body {
+    padding: 1rem 1rem 1.25rem !important;
+}
+
+.dashboard-chart-card canvas {
+    width: 100% !important;
+    max-height: 250px !important;
+    height: 250px !important;
 }
 
 .table {
@@ -720,6 +857,195 @@ body {
     }
 }
 
+/* Glassmorphism styles for person info modal */
+body.person-info-open .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.35) !important;
+    backdrop-filter: blur(6px) saturate(120%);
+    -webkit-backdrop-filter: blur(6px) saturate(120%);
+    transition: background-color 0.25s ease, backdrop-filter 0.25s ease;
+}
+
+#personInfoModal .modal-content {
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 10px 30px rgba(2,6,23,0.35);
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+    color: #0b1220;
+    overflow: visible;
+}
+
+#personInfoModal .modal-header,
+#personInfoModal .modal-footer {
+    background: transparent;
+    border: none;
+}
+
+.info-card {
+    border-radius: 12px;
+    box-shadow: 0 8px 22px rgba(9, 30, 66, 0.12);
+    border: 1px solid rgba(13, 110, 253, 0.06);
+    background: white;
+    overflow: hidden;
+}
+
+.info-card .card-body {
+    padding: 16px;
+}
+
+/* Make list items inside cards subtle */
+#info_members li {
+    padding: 8px 0;
+    border-bottom: 1px dashed rgba(0,0,0,0.06);
+}
+
+@media (max-width: 576px) {
+    #personInfoModal .modal-dialog { max-width: 95%; }
+}
+
+/* Reglas definitivas para resetear el contenedor blanco y forzar centrado */
+.modal-content,
+.modal-body,
+div[view="personas"] .modal-content {
+    background-color: transparent !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.modal-dialog {
+    max-width: 850px !important; /* Ajusta el ancho horizontal de tu bloque de tarjetas */
+    margin: 1.75rem auto !important; /* Centra horizontalmente en CSS tradicional */
+}
+
+.modal-backdrop.show {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.modal-header h5,
+.modal-header .modal-title,
+.modal-header {
+    color: #ffffff !important;
+    border-bottom: none !important;
+}
+
+.modal-header .btn-close {
+    filter: invert(1) grayscale(1) brightness(2);
+}
+
+/* Aux: evita clases de ancho fijo heredadas causando columnas a la izquierda */
+.modal-content[class*="w-25"],
+.modal-content[class*="w-50"],
+.modal-content[class*="col-md-4"],
+.modal-content[style*="width:"] {
+    width: auto !important;
+    max-width: none !important;
+}
+
+/* CSS Corrector: anular comportamiento lateral y forzar centrado */
+div[id^="modal"] .modal-dialog,
+.modal-dialog-centered {
+    max-width: 800px !important;    /* Ajusta el ancho para que quepan dos tarjetas al lado */
+    width: 85% !important;
+    margin: 1.75rem auto !important; /* Centrado clásico en el viewport */
+    left: 0 !important;              /* Resetea cualquier desvío a la izquierda */
+    right: 0 !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+div[id^="modal"] .modal-content {
+    height: auto !important;         /* Evita que se estire verticalmente de arriba a abajo */
+    background: transparent !important;
+    border: none !important;
+}
+
+div[id^="modal"] .modal-body {
+    width: 100% !important;
+    padding: 20px !important;
+}
+
+/* CSS Corrector - Override definitivo para forzar comportamiento nativo de Bootstrap */
+#personInfoModal.modal.show {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#personInfoModal.modal.show .modal-dialog {
+    position: relative !important;
+    margin: auto !important; /* Distribuye el espacio por igual en los 4 lados */
+    left: 0 !important;
+    right: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    max-width: 800px !important; /* Evita que colapse o se estire de más */
+    width: 90% !important;
+}
+
+#personInfoModal .modal-content {
+    height: auto !important;
+    max-height: 90vh;
+    overflow-y: auto; /* Agrega scroll interno si el contenido supera la pantalla */
+    background: transparent !important;
+}
+
+#personInfoModal .info-card {
+    background: rgba(255, 255, 255, 0.98) !important; /* Blanco limpio */
+    border-radius: 16px !important;
+    border: none !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+#personInfoModal .modal-title {
+    color: #ffffff !important;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+#personInfoModal .btn-close {
+    filter: invert(1) grayscale(1) brightness(2) !important;
+}
+
+/* Asegurar backdrop oscuro y blur */
+.modal-backdrop.show {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Person Info Modal: transparent background and centered dialog */
+#personInfoModal .modal-dialog {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 1rem);
+}
+#personInfoModal .modal-content {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: inherit;
+}
+#personInfoModal .modal-header,
+#personInfoModal .modal-footer {
+    background: transparent !important;
+    border: none !important;
+}
+#personInfoModal .modal-body {
+    background: transparent !important;
+}
+
 @media (max-width: 768px) {
     .app-header {
         justify-content: space-between;
@@ -795,8 +1121,85 @@ body {
 .login-header {
     background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
     color: white;
-    padding: 30px;
+    padding: 20px;
     text-align: center;
+}
+
+/* Modal de preguntas de seguridad en login */
+#securityQuestionsModal.modal-overlay {
+    z-index: 9999;
+}
+
+#securityQuestionsModal.active {
+    opacity: 1;
+    visibility: visible;
+    display: flex;
+}
+
+#securityQuestionsModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--transition);
+}
+
+/* Estilos específicos para formulario de registro */
+#registerForm .form-group {
+    margin-bottom: 8px;
+}
+
+#registerForm .form-label {
+    font-size: 12px;
+}
+
+#registerForm input::placeholder,
+#registerForm button {
+    font-size: 12px;
+}
+
+#registerForm .password-rules {
+    font-size: 0.6rem;
+}
+
+#registerForm .password-rules i {
+    font-size: 0.4rem;
+}
+
+/* Ajustes para que quepa sin scroll */
+.login-card {
+    height: auto;
+    max-height: none;
+    overflow-y: visible;
+}
+
+@media (max-height: 650px) {
+    #registerForm .form-group {
+        margin-bottom: 4px;
+    }
+    #registerForm .form-label {
+        font-size: 11px;
+    }
+    #registerForm input::placeholder {
+        font-size: 11px;
+    }
+    .login-header {
+        padding: 15px;
+    }
+    .login-header h1 {
+        font-size: 1.1rem;
+    }
+    .login-header p {
+        font-size: 0.85rem;
+    }
 }
 
 .login-header h1 {
@@ -872,6 +1275,62 @@ body {
 .password-rules {
     font-size: 12px;
     margin-top: 8px;
+}
+
+/* CSS Definitivo de Rescate: forzar que el modal salga del flujo lateral heredado */
+body.modal-open #personInfoModal,
+#personInfoModal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 1055 !important; /* Asegura que flote sobre todo */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+}
+
+#personInfoModal .modal-dialog {
+    width: 90% !important;
+    max-width: 850px !important; /* Ancho ideal para que respiren las tarjetas */
+    min-width: 320px !important;
+    margin: auto !important; /* Distribuye márgenes automáticos en los 4 lados */
+    transform: none !important; /* Rompe traslaciones raras de CSS */
+}
+
+#personInfoModal .modal-content {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+}
+
+#personInfoModal .modal-body {
+    width: 100% !important;
+    background: transparent !important;
+    padding: 15px !important;
+}
+
+#personInfoModal .modal-header .modal-title {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6) !important;
+}
+
+#personInfoModal .btn-close {
+    filter: invert(1) grayscale(1) brightness(2) !important;
+}
+
+/* Asegurar backdrop oscuro y blur (refuerzo) */
+.modal-backdrop.show {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
 }
 
 .password-rules .rule {

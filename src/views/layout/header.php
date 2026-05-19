@@ -28,18 +28,49 @@
             <div class="dropdown">
                 <button class="btn btn-sm btn-light dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <div class="user-avatar small">
-                        <?= strtoupper(substr($_SESSION['user_name'] ?? 'U', 0, 1)) ?>
+                        <?php
+                            $initials = 'U';
+                            $firstName = trim($_SESSION['user_name'] ?? '');
+                            $lastName = trim($_SESSION['user_surname'] ?? '');
+                            if ($firstName && $lastName) {
+                                $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
+                            } elseif ($firstName) {
+                                $initials = strtoupper(substr($firstName, 0, 1));
+                            }
+                            echo htmlspecialchars($initials);
+                        ?>
                     </div>
-                    <span class="d-none d-md-inline"><?= $_SESSION['user_name'] ?? 'Usuario' ?></span>
+                    <span class="d-none d-md-inline"><?= htmlspecialchars($_SESSION['user_fullname'] ?? $_SESSION['user_name'] ?? 'Usuario') ?></span>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="#" onclick="openPasswordModal(); return false;">
-                        <i class="bi bi-key"></i> Cambiar Contraseña
-                    </a></li>
-                    <li><a class="dropdown-item" href="#" onclick="openSecurityQuestionsModal(); return false;">
-                        <i class="bi bi-shield-lock"></i> Preguntas de Seguridad
-                    </a></li>
+                <ul class="dropdown-menu dropdown-menu-end user-profile-menu">
+                    <li class="px-3 py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="user-avatar" style="width:48px;height:48px;font-size:1.1rem;display:inline-flex;align-items:center;justify-content:center;">
+                                <?php
+                                    $initialsPanel = 'U';
+                                    $fn = trim($_SESSION['user_name'] ?? '');
+                                    $ln = trim($_SESSION['user_surname'] ?? '');
+                                    if ($fn && $ln) {
+                                        $initialsPanel = strtoupper(substr($fn,0,1) . substr($ln,0,1));
+                                    } elseif ($fn) {
+                                        $initialsPanel = strtoupper(substr($fn,0,1));
+                                    }
+                                    echo htmlspecialchars($initialsPanel);
+                                ?>
+                            </div>
+                            <div>
+                                <div class="fw-bold"><?= htmlspecialchars($_SESSION['user_fullname'] ?? $_SESSION['user_name'] ?? 'Usuario') ?></div>
+                                <?php if (!empty($_SESSION['user_ci'])): ?>
+                                    <div class="small text-muted">Cédula: <?= htmlspecialchars($_SESSION['user_ci']) ?></div>
+                                <?php endif; ?>
+                                <?php if (!empty($_SESSION['user_birth'])): ?>
+                                    <div class="small text-muted">Nac.: <?= htmlspecialchars($_SESSION['user_birth']) ?></div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </li>
                     <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" onclick="openPasswordModal(); return false;"><i class="bi bi-key"></i> Cambiar Contraseña</a></li>
                     <li>
                         <form action="<?= $base_url ?>/src/controllers/auth.php" method="POST" id="logoutForm" style="display:inline;">
                             <input type="hidden" name="action" value="logout">
@@ -58,12 +89,7 @@
             var modal = new bootstrap.Modal(document.getElementById('passwordModal'));
             modal.show();
         }
-        function openSecurityQuestionsModal() { 
-            var modal = new bootstrap.Modal(document.getElementById('securityQuestionsModal'));
-            modal.show();
-        }
     </script>
-    
     <!-- Modal para Cambiar Contraseña -->
     <div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalLabel">
         <div class="modal-dialog">
@@ -119,136 +145,7 @@
         </div>
     </div>
     
-    <!-- Modal para Preguntas de Seguridad -->
-    <div id="securityQuestionsModal" class="modal fade" tabindex="-1" aria-labelledby="securityQuestionsModalLabel">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="securityQuestionsModalLabel"><i class="bi bi-shield-lock"></i> Preguntas de Seguridad</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form id="securityQuestionsForm" method="POST" action="<?= $base_url ?>/src/controllers/auth.php">
-                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-                    <div class="modal-body">
-                        <p class="small text-muted mb-3">Selecciona 2 preguntas para recuperar tu contraseña.</p>
-                        
-                        <div class="mb-3">
-                            <label for="sq1" class="form-label small fw-bold">Pregunta 1 *</label>
-                            <select class="form-control" id="sq1" name="sq1" required>
-                                <option value="">Selecciona...</option>
-                                <option value="¿Cuál es el nombre de tu primera mascota?">¿Cuál es el nombre de tu primera mascota?</option>
-                                <option value="¿En qué ciudad naciste?">¿En qué ciudad naciste?</option>
-                                <option value="¿Cuál es tu comida favorita?">¿Cuál es tu comida favorita?</option>
-                                <option value="¿Cuál es el nombre de tu mejor amigo?">¿Cuál es el nombre de tu mejor amigo?</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="sa1" class="form-label small fw-bold">Respuesta 1 *</label>
-                            <input type="text" class="form-control" id="sa1" name="sa1" placeholder="Tu respuesta" maxlength="100" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="sq2" class="form-label small fw-bold">Pregunta 2 *</label>
-                            <select class="form-control" id="sq2" name="sq2" required>
-                                <option value="">Selecciona...</option>
-                                <option value="¿Cuál es el nombre de tu escuela?">¿Cuál es el nombre de tu escuela?</option>
-                                <option value="¿Cuál es tu película favorita?">¿Cuál es tu película favorita?</option>
-                                <option value="¿Cuál es tu artista favorito?">¿Cuál es tu artista favorito?</option>
-                                <option value="¿Qué país te gustaría visitar?">¿Qué país te gustaría visitar?</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="sa2" class="form-label small fw-bold">Respuesta 2 *</label>
-                            <input type="text" class="form-control" id="sa2" name="sa2" placeholder="Tu respuesta" maxlength="100" required>
-                        </div>
-                        
-                        <div id="sqAlert"></div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar Preguntas</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <div class="app-container">
-        <aside class="app-sidebar">
-            <div class="sidebar-header">
-                <h3><i class="bi bi-menu-button-wide"></i> Menu</h3>
-            </div>
-            <nav class="sidebar-nav">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link <?= $active_page === 'dashboard' ? 'active' : '' ?>" href="<?= $base_url ?>/index.php">
-                            <i class="bi bi-speedometer2"></i>
-                            Inicio
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?= $active_page === 'personas' ? 'active' : '' ?>" href="<?= $base_url ?>/index.php?view=personas">
-                            <i class="bi bi-people"></i>
-                            Personas
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?= $active_page === 'familias' ? 'active' : '' ?>" href="<?= $base_url ?>/index.php?view=familias">
-                            <i class="bi bi-house-door"></i>
-                            Familias
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?= $active_page === 'calendar' ? 'active' : '' ?>" href="<?= $base_url ?>/index.php?view=calendar">
-                            <i class="bi bi-calendar-event"></i>
-                            Calendario
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?= $active_page === 'statistics' ? 'active' : '' ?>" href="<?= $base_url ?>/index.php?view=statistics">
-                            <i class="bi bi-bar-chart-line"></i>
-                            Estadísticas
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?= $active_page === 'viviendas' ? 'active' : '' ?>" href="<?= $base_url ?>/index.php?view=viviendas">
-                            <i class="bi bi-house"></i>
-                            Viviendas
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?= $active_page === 'calles' ? 'active' : '' ?>" href="<?= $base_url ?>/index.php?view=calles">
-                            <i class="bi bi-signpost"></i>
-                            Calles
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?= $active_page === 'manzana' ? 'active' : '' ?>" href="<?= $base_url ?>/index.php?view=manzana">
-                            <i class="bi bi-grid-3x3"></i>
-                            Manzana
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?= $active_page === 'backup' ? 'active' : '' ?>" href="<?= $base_url ?>/index.php?view=backup">
-                            <i class="bi bi-database-check"></i>
-                            Respaldo
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?= $active_page === 'usuarios' ? 'active' : '' ?>" href="<?= $base_url ?>/index.php?view=usuarios">
-                            <i class="bi bi-people"></i>
-                            Usuarios
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </aside>
-        <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
-        
-        <div class="main-wrapper">
-            <main class="main-content">
+    <?php require_once __DIR__ . '/sidebar.php'; ?>
 <?php else: ?>
     <!-- Layout simple (para login) -->
     <div class="login-container">
@@ -257,53 +154,4 @@
         </div>
     </div>
     
-    <!-- Modal de Preguntas de Seguridad -->
-    <div id="securityQuestionsModal" class="modal-overlay" style="display: none; z-index: 9999;">
-        <div class="modal" style="max-width: 380px; margin: 10px;">
-            <div class="modal-header">
-                <h5 style="font-size: 1rem;"><i class="bi bi-shield-lock"></i> Preguntas de Seguridad</h5>
-                <button type="button" class="modal-close" onclick="closeSecurityModal()">&times;</button>
-            </div>
-            <div class="modal-body" style="padding: 15px;">
-                <p class="small text-muted mb-2">Selecciona 2 preguntas para recuperar tu contrasena.</p>
-                
-                <div class="form-group mb-2">
-                    <label class="form-label small fw-bold">Pregunta 1 *</label>
-                    <select class="form-control form-control-sm" id="sq1">
-                        <option value="">Selecciona...</option>
-                        <option value="¿Cuál es el nombre de tu primera mascota?">Nombre de tu primera mascota</option>
-                        <option value="¿En qué ciudad naciste?">Ciudad donde naciste</option>
-                        <option value="¿Cuál es tu comida favorita?">Tu comida favorita</option>
-                        <option value="¿Cuál es el nombre de tu mejor amigo?">Tu mejor amigo</option>
-                    </select>
-                </div>
-                
-                <div class="form-group mb-2">
-                    <label class="form-label small fw-bold">Respuesta 1 *</label>
-                    <input type="text" class="form-control form-control-sm" id="sa1" placeholder="Tu respuesta" maxlength="100">
-                </div>
-                
-                <div class="form-group mb-2">
-                    <label class="form-label small fw-bold">Pregunta 2 *</label>
-                    <select class="form-control form-control-sm" id="sq2">
-                        <option value="">Selecciona...</option>
-                        <option value="¿Cuál es el nombre de tu escuela?">Nombre de tu escuela</option>
-                        <option value="¿Cuál es tu película favorita?">Tu película favorita</option>
-                        <option value="¿Cuál es tu artista favorito?">Tu artista favorito</option>
-                        <option value="¿Qué país te gustaría visitar?">País que te gustaría visitar</option>
-                    </select>
-                </div>
-                
-                <div class="form-group mb-2">
-                    <label class="form-label small fw-bold">Respuesta 2 *</label>
-                    <input type="text" class="form-control form-control-sm" id="sa2" placeholder="Tu respuesta" maxlength="100">
-                </div>
-                
-                <div id="sqAlert"></div>
-            </div>
-            <div class="modal-footer" style="padding: 10px 15px;">
-                <button type="button" class="btn btn-primary btn-sm w-100" onclick="saveSecurityQuestions()">Guardar Preguntas</button>
-            </div>
-        </div>
-    </div>
 <?php endif; ?>

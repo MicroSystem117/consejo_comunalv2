@@ -6,7 +6,8 @@ class DbUser {
 
     public function __construct()
     {
-        $this->conn = DataBase::connect("credentials");
+        // Usuarios y credenciales ahora viven en la misma base de datos comunity
+        $this->conn = DataBase::connect("comunity");
     }
 
     public function getConnection()

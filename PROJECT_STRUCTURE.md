@@ -9,9 +9,9 @@ Project structure for consejo_comunalv2.0.0
 - src/ — application source
   - controllers/ — HTTP endpoints (auth.php, password_reset.php, etc.)
     - legacy/ — preserved legacy handlers (e.g. legacy/login.php)
-  - models/ — data layer helpers and SQL dumps (dbuser.php, credentials.sql)
+  - models/ — data layer helpers and SQL dumps (dbuser.php, legacy_credentials_dump.sql)
   - views/ — server-rendered partials (if any)
-- migrations/ — SQL migration files (apply in order to the `credentials` DB)
+- migrations/ — SQL migration files (apply in order to the unified `comunity` DB)
 - scripts/ — development scripts and CLI helpers (auth_cli.php, password_reset_cli.php, migration helpers)
 - backups/ — DB dumps and backups
 
@@ -20,7 +20,7 @@ Guidelines
 - Place reusable DB/model helpers in `src/models`.
 - SQL schema or dumps live in `src/models` or `migrations` depending on use:
   - `migrations/` for repeatable ALTER/CREATE statements to apply to the live DB
-  - `src/models/credentials.sql` for a canonical dump
+  - `src/models/legacy_credentials_dump.sql` for a legacy dump from the old `credentials` DB
 - Development helpers (one-off scripts) go in `scripts/` and should be CLI-only.
 - Keep third-party vendor assets in `public/vendor/` (no CDN).
 

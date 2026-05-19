@@ -28,6 +28,46 @@ window.showToast = function(type, message) {
     });
 };
 
+window.showAlert = function(type, message, title) {
+    if (typeof Swal === 'undefined') {
+        alert(message);
+        return Promise.resolve();
+    }
+
+    var titles = {
+        success: 'Éxito',
+        error: 'Error',
+        warning: 'Advertencia',
+        info: 'Información'
+    };
+
+    return Swal.fire({
+        title: title || titles[type] || 'Aviso',
+        text: message,
+        icon: type === 'error' ? 'error' : (type === 'success' ? 'success' : (type === 'warning' ? 'warning' : 'info')),
+        confirmButtonText: 'Aceptar'
+    });
+};
+
+window.showConfirm = function(title, text, confirmButtonText, cancelButtonText) {
+    if (typeof Swal === 'undefined') {
+        return Promise.resolve(confirm(text || title));
+    }
+
+    return Swal.fire({
+        title: title || '¿Confirmar?',
+        text: text || '',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: confirmButtonText || 'Sí',
+        cancelButtonText: cancelButtonText || 'Cancelar',
+        reverseButtons: true,
+        focusCancel: true
+    }).then(function(result) {
+        return result.isConfirmed;
+    });
+};
+
 $(document).ready(function() {
     var baseUrl = window.baseUrl || $('body').data('base-url') || '';
     
@@ -133,7 +173,7 @@ $(document).ready(function() {
             closeModal();
             location.reload();
         }).fail(function() {
-            alert('Error al guardar');
+            showAlert('error', 'Error al guardar');
         });
     };
     
@@ -168,13 +208,33 @@ $(document).ready(function() {
     // Eliminar persona
     if (typeof window.deletePerson === 'undefined') {
         window.deletePerson = function(id) {
-            if (!confirm('Esta seguro de eliminar esta persona?')) return;
-            
-            $.post(baseUrl + '/src/controllers/comunity_person.php?action=delete', { id: id }, function() {
-                location.reload();
-            }).fail(function() {
-                alert('Error al eliminar');
+            showConfirm('¿Eliminar persona?', 'Esta acción no se puede deshacer.', 'Eliminar', 'Cancelar')
+            .then(function(confirmed) {
+                if (!confirmed) return;
+
+                $.post(baseUrl + '/src/controllers/comunity_person.php?action=delete', { id: id }, function() {
+                    location.reload();
+                }).fail(function() {
+                    showAlert('error', 'Error al eliminar');
+                });
             });
         };
     }
+
+    // Estilizar controles de DataTables globalmente al inicializar o redibujar
+    $(document).on('init.dt draw.dt', function(e, settings) {
+        try {
+            var $wrapper = $(settings.nTable).closest('.dataTables_wrapper');
+            // Botones de paginación
+            $wrapper.find('.dataTables_paginate .paginate_button').each(function() {
+                $(this).addClass('btn btn-sm btn-outline-secondary');
+            });
+            $wrapper.find('.dataTables_paginate .paginate_button.current').removeClass('btn-outline-secondary').addClass('btn btn-sm btn-primary text-white');
+            // Select y filtro
+            $wrapper.find('.dataTables_length select').addClass('form-select form-select-sm');
+            $wrapper.find('.dataTables_filter input').addClass('form-control form-control-sm');
+        } catch (err) {
+            console.warn('DataTables styling hook failed', err);
+        }
+    });
 });

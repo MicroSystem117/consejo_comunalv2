@@ -23,15 +23,27 @@ $conn->query(
         event_date DATE NOT NULL,
         event_time VARCHAR(10) DEFAULT NULL,
         description TEXT DEFAULT NULL,
+        created_by INT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
 );
 
+// Agregar columna created_by si falta
+$columnCheck = $conn->query("SHOW COLUMNS FROM calendar_events LIKE 'created_by'");
+if ($columnCheck && $columnCheck->num_rows === 0) {
+    $conn->query("ALTER TABLE calendar_events ADD COLUMN created_by INT DEFAULT NULL AFTER description");
+}
+
 $action = $_REQUEST['action'] ?? 'list';
 
 if ($action === 'list') {
-    $stmt = $conn->prepare("SELECT * FROM calendar_events ORDER BY event_date ASC, event_time ASC");
+    $stmt = $conn->prepare(
+        "SELECT ce.*, u.id_user AS created_by_user_id, u.name AS created_by_name, u.surname AS created_by_surname
+         FROM calendar_events ce
+         LEFT JOIN `user` u ON ce.created_by = u.id_user
+         ORDER BY ce.event_date ASC, ce.event_time ASC"
+    );
     $stmt->execute();
     $result = $stmt->get_result();
     $events = [];
@@ -48,7 +60,12 @@ if ($action === 'get') {
         echo json_encode(['status' => 'error', 'message' => 'ID inválido']);
         exit;
     }
-    $stmt = $conn->prepare("SELECT * FROM calendar_events WHERE id = ?");
+    $stmt = $conn->prepare(
+        "SELECT ce.*, u.id_user AS created_by_user_id, u.name AS created_by_name, u.surname AS created_by_surname
+         FROM calendar_events ce
+         LEFT JOIN `user` u ON ce.created_by = u.id_user
+         WHERE ce.id = ?"
+    );
     $stmt->bind_param('i', $id);
     $stmt->execute();
     $event = $stmt->get_result()->fetch_assoc();
@@ -61,7 +78,25 @@ if ($action === 'get') {
 }
 
 if (in_array($action, ['create', 'update', 'delete'])) {
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+    // Prevent users with level 3 from performing write operations on calendar
+    $userLevel = (int) ($_SESSION['id_level'] ?? 3);
+    if ($userLevel === 3) {
+        echo json_encode(['status' => 'error', 'message' => 'No autorizado: permisos insuficientes']);
+        exit;
+    }
+    $token = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
+    $valid = false;
+
+    if ($token) {
+        if (!empty($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token)) {
+            $valid = true;
+        }
+        if (!empty($_SESSION['csrf_token_session']) && hash_equals($_SESSION['csrf_token_session'], $token)) {
+            $valid = true;
+        }
+    }
+
+    if (!$valid) {
         echo json_encode(['status' => 'error', 'message' => 'Token CSRF inválido']);
         exit;
     }
@@ -80,8 +115,9 @@ if ($action === 'create' || $action === 'update') {
     }
 
     if ($action === 'create') {
-        $stmt = $conn->prepare("INSERT INTO calendar_events (title, event_date, event_time, description) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param('ssss', $title, $event_date, $event_time, $description);
+        $created_by = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
+        $stmt = $conn->prepare("INSERT INTO calendar_events (title, event_date, event_time, description, created_by) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param('ssssi', $title, $event_date, $event_time, $description, $created_by);
         if ($stmt->execute()) {
             echo json_encode(['status' => 'ok', 'id' => $stmt->insert_id]);
         } else {

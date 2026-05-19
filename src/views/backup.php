@@ -23,14 +23,7 @@ $active_page = 'backup';
                 <ul class="list-group mb-3">
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         Base de datos: comunity
-                        <span class="badge bg-secondary">Principal</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <input type="checkbox" id="include_credentials" name="include_credentials" checked>
-                            <label for="include_credentials">Base de datos: credentials</label>
-                        </div>
-                        <span class="badge bg-secondary">Usuarios</span>
+                        <span class="badge bg-secondary">Unificada</span>
                     </li>
                 </ul>
                 <button type="button" class="btn btn-primary w-100" onclick="performBackup()">
@@ -52,8 +45,8 @@ $active_page = 'backup';
                     <i class="bi bi-exclamation-triangle"></i>
                     <strong>Advertencia:</strong> Esta operación reemplazará todos los datos actuales.
                 </div>
-                <form id="restoreForm" enctype="multipart/form-data">
-                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                <form id="restoreForm" enctype="multipart/form-data" accept-charset="UTF-8">
+                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
                     <input type="hidden" name="action" value="restore">
                     <div class="mb-3">
                         <label for="backup_file" class="form-label">Archivo de Respaldo (.sql)</label>
@@ -120,14 +113,6 @@ function performBackup() {
     csrfToken.value = '<?php echo $_SESSION['csrf_token']; ?>';
     form.appendChild(csrfToken);
     
-    var includeCredentials = document.getElementById('include_credentials');
-    if (includeCredentials && !includeCredentials.checked) {
-        var includeCredInput = document.createElement('input');
-        includeCredInput.type = 'hidden';
-        includeCredInput.name = 'include_credentials';
-        includeCredInput.value = '0';
-        form.appendChild(includeCredInput);
-    }
     
     document.body.appendChild(form);
     form.submit();
@@ -151,40 +136,42 @@ $('#restoreForm').on('submit', function(e) {
         return;
     }
     
-    if (!confirm('¿Está seguro de continuar? Esta acción reemplazará todos los datos actuales.')) {
-        return;
-    }
-    
-    $('#restoreProgress').show();
-    $('#restoreBtn').prop('disabled', true);
-    
-    var formData = new FormData(this);
-    
-    $.ajax({
-        url: window.baseUrl + '/index.php?view=backup&action=restore',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        dataType: 'json',
-        success: function(response) {
-            $('#restoreProgress').hide();
-            $('#restoreBtn').prop('disabled', false);
-            
-            if (response.success) {
-                showToast('success', response.message);
-                $('#restoreForm')[0].reset();
-                loadBackupHistory();
-            } else {
-                showToast('error', response.message);
-            }
-        },
-        error: function(xhr, status, error) {
-            $('#restoreProgress').hide();
-            $('#restoreBtn').prop('disabled', false);
-            showToast('error', 'Error al restaurar: ' + error);
-        }
-    });
+    var form = this;
+    showConfirm('¿Restaurar respaldo?', 'Esta acción reemplazará todos los datos actuales.', 'Continuar', 'Cancelar')
+        .then(function(confirmed) {
+            if (!confirmed) return;
+
+            $('#restoreProgress').show();
+            $('#restoreBtn').prop('disabled', true);
+
+            var formData = new FormData(form);
+
+            $.ajax({
+                url: window.baseUrl + '/index.php?view=backup&action=restore',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function(response) {
+                    $('#restoreProgress').hide();
+                    $('#restoreBtn').prop('disabled', false);
+                    
+                    if (response.success) {
+                        showToast('success', response.message);
+                        $('#restoreForm')[0].reset();
+                        loadBackupHistory();
+                    } else {
+                        showToast('error', response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#restoreProgress').hide();
+                    $('#restoreBtn').prop('disabled', false);
+                    showToast('error', 'Error al restaurar: ' + error);
+                }
+            });
+        });
 });
 
 // Load backup history
@@ -211,21 +198,30 @@ function loadBackupHistory() {
                     .addClass('btn btn-sm btn-danger')
                     .html('<i class="bi bi-trash"></i>')
                     .on('click', function() {
-                        if (confirm('¿Eliminar este respaldo?')) {
-                            deleteBackup(backup.name);
-                        }
-                    }));
-                
+                        showConfirm('¿Eliminar respaldo?', '¿Eliminar este respaldo? Esta acción no se puede deshacer.', 'Eliminar', 'Cancelar')
+                            .then(function(confirmed) {
+                                if (confirmed) {
+                                    deleteBackup(backup.name);
+                                }
+                            });
+                    })
+                );
+
                 row.append(actions);
                 tbody.append(row);
             });
             
             // Initialize DataTable if not already done
-            if (!$.fn.DataTable.isDataTable('#backupHistoryTable')) {
+                if (!$.fn.DataTable.isDataTable('#backupHistoryTable')) {
                 $('#backupHistoryTable').DataTable({
                     language: {
                         url: '<?= $base_url ?>/public/vendor/datatables/es-ES.json'
                     },
+                    paging: true,
+                    pagingType: 'simple_numbers',
+                    pageLength: 10,
+                    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'Todos']],
+                    dom: '<"row mb-2"<"col-sm-6"l><"col-sm-6"f>>t<"row mt-2"<"col-sm-6"i><"col-sm-6"p>>',
                     order: [[1, 'desc']]
                 });
             }

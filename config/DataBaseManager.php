@@ -7,8 +7,7 @@ class DataBase {
         if(!isset(self::$connections[$key])) {
             switch($key) {
                 case 'credentials':
-                    $db = 'credentials';
-                    break;
+                    // credentials ahora es alias de comunity para unificar la base de datos
                 case 'comunity':
                 case 'comunidad':
                     $db = 'comunity';

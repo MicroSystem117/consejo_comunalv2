@@ -2,6 +2,8 @@
 // Vista de Manzana
 $title = 'Manzana - Consejo Comunal';
 $active_page = 'manzana';
+$userLevel = (int) ($_SESSION['id_level'] ?? 3);
+$showActions = $userLevel !== 3;
 ?>
 
 <div class="page-header fade-in">
@@ -13,9 +15,11 @@ $active_page = 'manzana';
                     <i class="bi bi-download"></i> Exportar CSV
                 </button>
             </div>
-            <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="modal" data-bs-target="#manzanaModal">
-                <i class="bi bi-plus"></i> Nueva Manzana
-            </button>
+            <?php if ($userLevel !== 3): ?>
+                <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="modal" data-bs-target="#manzanaModal">
+                    <i class="bi bi-plus"></i> Nueva Manzana
+                </button>
+            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -28,7 +32,9 @@ $active_page = 'manzana';
                 <th>Código</th>
                 <th>Calle</th>
                 <th>Manzana</th>
-                <th>Acciones</th>
+                <?php if ($showActions): ?>
+                    <th>Acciones</th>
+                <?php endif; ?>
             </tr>
         </thead>
         <tbody>
@@ -38,19 +44,21 @@ $active_page = 'manzana';
                         <td><?php echo htmlspecialchars($m['codigo_square']); ?></td>
                         <td><?php echo htmlspecialchars($m['name_street'] ?? 'Sin asignar'); ?></td>
                         <td><?php echo htmlspecialchars($m['name_square']); ?></td>
-                        <td class="actions">
-                            <button class="btn btn-sm btn-warning" onclick="editManzana(<?php echo $m['id_square']; ?>)">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteManzana(<?php echo $m['id_square']; ?>)">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
+                        <?php if ($showActions): ?>
+                            <td class="actions">
+                                <button class="btn btn-sm btn-warning" onclick="editManzana(<?php echo $m['id_square']; ?>)">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteManzana(<?php echo $m['id_square']; ?>)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="4" class="text-center text-muted">No hay manzanas registradas</td>
+                    <td colspan="<?= $showActions ? 4 : 3 ?>" class="text-center text-muted">No hay manzanas registradas</td>
                 </tr>
             <?php endif; ?>
         </tbody>
@@ -65,7 +73,7 @@ $active_page = 'manzana';
                 <h5 class="modal-title" id="manzanaModalLabel">Nueva Manzana</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="manzanaForm" method="POST" action="?view=manzana&mode=save">
+            <form id="manzanaForm" method="POST" action="?view=manzana&mode=save" accept-charset="UTF-8">
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 <div class="modal-body">
                     <div class="mb-3">
@@ -111,7 +119,10 @@ $(document).ready(function() {
                 url: '<?= $base_url ?>/public/vendor/datatables/es-ES.json'
             },
             responsive: true,
-            dom: '<"row"<"col-sm-12"f>t>'
+            paging: true,
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'Todos']],
+            dom: '<"row"<"col-sm-6"l><"col-sm-6"f>>t<"row"<"col-sm-6"i><"col-sm-6"p>>'
         });
     }
 });
@@ -153,15 +164,52 @@ function editManzana(id) {
 }
 
 function deleteManzana(id) {
-    if (confirm('¿Está seguro de eliminar esta manzana?')) {
-        $.post('?view=manzana&mode=delete', { id_square: id, csrf_token: '<?php echo $_SESSION['csrf_token']; ?>' }, function(response) {
-            if (response.success) {
-                showToast('success', response.message);
-                setTimeout(() => window.location.reload(), 1500);
-            } else {
-                showToast('error', response.message);
-            }
-        }, 'json');
-    }
+    showConfirm('¿Eliminar manzana?', '¿Está seguro de eliminar esta manzana? Esta acción no se puede deshacer.', 'Eliminar', 'Cancelar')
+        .then(function(confirmed) {
+            if (!confirmed) return;
+
+            $.post('?view=manzana&mode=delete', { id_square: id, csrf_token: '<?php echo $_SESSION['csrf_token']; ?>' }, function(response) {
+                if (response.success) {
+                    showToast('success', response.message);
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showToast('error', response.message);
+                }
+            }, 'json');
+        });
 }
+
+// Función para restringir entrada en campos
+function restrictInput(input, regex) {
+    let isComposing = false;
+    
+    input.addEventListener('compositionstart', () => isComposing = true);
+    input.addEventListener('compositionend', () => {
+        isComposing = false;
+        // Filtrar después de composición
+        input.value = input.value.replace(regex, '');
+    });
+    
+    input.addEventListener('input', function() {
+        if (!isComposing) {
+            this.value = this.value.replace(regex, '');
+        }
+    });
+    
+    input.addEventListener('paste', function(e) {
+        let paste = (e.clipboardData || window.clipboardData).getData('text');
+        let cleaned = paste.replace(regex, '');
+        if (cleaned !== paste) {
+            e.preventDefault();
+            this.value += cleaned;
+        }
+    });
+}
+
+// Aplicar restricciones a los campos
+document.addEventListener('DOMContentLoaded', function() {
+    // Campo alfanumérico: Nombre de la Manzana (letras, números, espacios y guiones)
+    let alnumRegex = /[^\p{L}\p{N}\s\-]/gu;
+    restrictInput(document.querySelector('input[name="name_square"]'), alnumRegex);
+});
 </script>

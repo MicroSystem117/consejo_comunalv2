@@ -33,15 +33,22 @@ function generarConstanciaResidenciaPDF($id_person) {
     if (!$datos) {
         die('Datos no encontrados para la persona.');
     }
-    extract($datos);
+    extract(['person' => $datos]);
     ob_start();
-    include __DIR__ . '/../views/constancia_residencia.php';
+    include __DIR__ . '/../views/pdf_template.php';
     $html = ob_get_clean();
 
+    $tmpPath = realpath(__DIR__ . '/../../tmp');
     $mpdf = new Mpdf([
         'mode' => 'utf-8',
-        'format' => 'A4',
-        'default_font' => 'roboto', // Cambia a 'ubuntu' si prefieres
+        'format' => 'Letter',
+        'default_font_size' => 10,
+        'margin_top' => 15,
+        'margin_bottom' => 15,
+        'margin_left' => 15,
+        'margin_right' => 15,
+        'default_font' => 'Arial',
+        'tempDir' => $tmpPath ?: __DIR__ . '/../../tmp',
     ]);
     $mpdf->WriteHTML($html);
     $mpdf->Output('constancia_residencia.pdf', 'I');

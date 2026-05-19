@@ -2,6 +2,8 @@
 // Vista de Calles
 $title = 'Calles - Consejo Comunal';
 $active_page = 'calles';
+$userLevel = (int) ($_SESSION['id_level'] ?? 3);
+$showActions = $userLevel !== 3;
 ?>
 
 <div class="page-header fade-in">
@@ -13,9 +15,11 @@ $active_page = 'calles';
                     <i class="bi bi-download"></i> Exportar CSV
                 </button>
             </div>
-            <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="modal" data-bs-target="#calleModal">
-                <i class="bi bi-plus"></i> Nueva Calle
-            </button>
+            <?php if ($userLevel !== 3): ?>
+                <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="modal" data-bs-target="#calleModal">
+                    <i class="bi bi-plus"></i> Nueva Calle
+                </button>
+            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -28,7 +32,9 @@ $active_page = 'calles';
                 <th>ID</th>
                 <th>Código</th>
                 <th>Nombre de la Calle</th>
-                <th>Acciones</th>
+                <?php if ($showActions): ?>
+                    <th>Acciones</th>
+                <?php endif; ?>
             </tr>
         </thead>
         <tbody>
@@ -38,19 +44,21 @@ $active_page = 'calles';
                         <td><?= $c['id_street'] ?></td>
                         <td><?= htmlspecialchars($c['codigo_street']) ?></td>
                         <td><?= htmlspecialchars($c['name_street']) ?></td>
-                        <td class="actions">
-                            <button class="btn btn-sm btn-warning" onclick="editCalle(<?= $c['id_street'] ?>)">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteCalle(<?= $c['id_street'] ?>)">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
+                        <?php if ($showActions): ?>
+                            <td class="actions">
+                                <button class="btn btn-sm btn-warning" onclick="editCalle(<?= $c['id_street'] ?>)">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteCalle(<?= $c['id_street'] ?>)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="4" class="text-center text-muted">No hay calles registradas</td>
+                    <td colspan="<?= $showActions ? 4 : 3 ?>" class="text-center text-muted">No hay calles registradas</td>
                 </tr>
             <?php endif; ?>
         </tbody>
@@ -65,7 +73,7 @@ $active_page = 'calles';
                 <h5 class="modal-title" id="calleModalLabel">Nueva Calle</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="calleForm" method="POST" action="?view=calles&mode=save">
+            <form id="calleForm" method="POST" action="?view=calles&mode=save" accept-charset="UTF-8">
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 <div class="modal-body">
                     <div class="mb-3">
@@ -98,7 +106,11 @@ $(document).ready(function() {
                 url: '<?= $base_url ?>/public/vendor/datatables/es-ES.json'
             },
             responsive: true,
-            dom: '<"row"<"col-sm-12"f>t>'
+            paging: true,
+            pagingType: 'simple_numbers',
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'Todos']],
+            dom: '<"row mb-2"<"col-sm-6"l><"col-sm-6"f>>t<"row mt-2"<"col-sm-6"i><"col-sm-6"p>>'
         });
     }
 });
@@ -139,15 +151,52 @@ function editCalle(id) {
 }
 
 function deleteCalle(id) {
-    if (confirm('¿Está seguro de eliminar esta calle?')) {
-        $.post('?view=calles&mode=delete', { id_street: id, csrf_token: '<?php echo $_SESSION['csrf_token']; ?>' }, function(response) {
-            if (response.success) {
-                showToast('success', response.message);
-                setTimeout(() => window.location.reload(), 1500);
-            } else {
-                showToast('error', response.message);
-            }
-        }, 'json');
-    }
+    showConfirm('¿Eliminar calle?', '¿Está seguro de eliminar esta calle? Esta acción no se puede deshacer.', 'Eliminar', 'Cancelar')
+        .then(function(confirmed) {
+            if (!confirmed) return;
+
+            $.post('?view=calles&mode=delete', { id_street: id, csrf_token: '<?php echo $_SESSION['csrf_token']; ?>' }, function(response) {
+                if (response.success) {
+                    showToast('success', response.message);
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showToast('error', response.message);
+                }
+            }, 'json');
+        });
 }
+
+// Función para restringir entrada en campos
+function restrictInput(input, regex) {
+    let isComposing = false;
+    
+    input.addEventListener('compositionstart', () => isComposing = true);
+    input.addEventListener('compositionend', () => {
+        isComposing = false;
+        // Filtrar después de composición
+        input.value = input.value.replace(regex, '');
+    });
+    
+    input.addEventListener('input', function() {
+        if (!isComposing) {
+            this.value = this.value.replace(regex, '');
+        }
+    });
+    
+    input.addEventListener('paste', function(e) {
+        let paste = (e.clipboardData || window.clipboardData).getData('text');
+        let cleaned = paste.replace(regex, '');
+        if (cleaned !== paste) {
+            e.preventDefault();
+            this.value += cleaned;
+        }
+    });
+}
+
+// Aplicar restricciones a los campos
+document.addEventListener('DOMContentLoaded', function() {
+    // Campo alfanumérico: Nombre de la Calle (letras, números, espacios y guiones)
+    let alnumRegex = /[^\p{L}\p{N}\s\-]/gu;
+    restrictInput(document.querySelector('input[name="name_street"]'), alnumRegex);
+});
 </script>

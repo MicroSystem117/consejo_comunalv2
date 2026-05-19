@@ -6,9 +6,12 @@ $active_page = 'calendar';
 <div class="page-header fade-in calendar-page">
     <h1><i class="bi bi-calendar-event"></i> Calendario de Actividades</h1>
     <div class="page-actions">
-        <button id="btnAddCalendarEvent" class="btn btn-sm btn-primary">
-            <i class="bi bi-plus-lg"></i> Nuevo Evento
-        </button>
+        <?php $userLevel = (int) ($_SESSION['id_level'] ?? 3); ?>
+        <?php if ($userLevel !== 3): ?>
+            <button id="btnAddCalendarEvent" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-lg"></i> Nuevo Evento
+            </button>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -25,12 +28,14 @@ $active_page = 'calendar';
     <div id="calendarGrid" class="calendar-grid mb-4"></div>
 
     <div>
-        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
                 <h5 class="mb-0">Eventos para <span id="selectedDateLabel"></span></h5>
                 <small class="text-muted">Haz clic en un día para ver o agregar actividades.</small>
             </div>
-            <button id="btnAddEventForDay" class="btn btn-outline-primary btn-sm">Agregar evento</button>
+            <?php if ($userLevel !== 3): ?>
+                <button id="btnAddEventForDay" class="btn btn-outline-primary btn-sm">Agregar evento</button>
+            <?php endif; ?>
         </div>
         <div id="eventList"></div>
     </div>
@@ -44,7 +49,7 @@ $active_page = 'calendar';
                 <h5 class="modal-title" id="calendarEventModalLabel">Nuevo Evento</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <form id="calendarEventForm">
+            <form id="calendarEventForm" accept-charset="UTF-8">
                 <input type="hidden" id="event_id" name="id">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
                 <div class="modal-body">
@@ -81,10 +86,11 @@ var calendarEvents = [];
 var currentDate = new Date();
 var selectedDate = new Date();
 var calendarModal;
+var canEditCalendar = <?= ($userLevel !== 3) ? 'true' : 'false'; ?>;
 
 function formatSpanishMonth(year, month) {
     var meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    return meses[month] + ' ' + year;
+    return meses[month];
 }
 
 function formatDateKey(date) {
@@ -169,9 +175,15 @@ function renderEventList() {
             list += '<div class="event-card">';
             list += '<div class="d-flex justify-content-between align-items-start">';
             list += '<div><h6 class="mb-1">' + $('<div>').text(evento.title).html() + '</h6>';
-            list += '<div class="event-time">' + (evento.event_time ? evento.event_time + ' · ' : '') + evento.event_date + '</div></div>';
-            list += '<div><button class="btn btn-sm btn-outline-secondary me-1" onclick="editCalendarEvent(' + evento.id + ')"><i class="bi bi-pencil"></i></button>';
-            list += '<button class="btn btn-sm btn-outline-danger" onclick="deleteCalendarEvent(' + evento.id + ')"><i class="bi bi-trash"></i></button></div>';
+            list += '<div class="event-time">' + (evento.event_time ? evento.event_time + ' · ' : '') + evento.event_date + '</div>';
+            if (evento.created_by_name) {
+                list += '<div class="text-muted small">Creado por: ' + $('<div>').text(evento.created_by_name + ' ' + evento.created_by_surname).html() + '</div>';
+            }
+            list += '</div>';
+            if (canEditCalendar) {
+                list += '<div><button class="btn btn-sm btn-outline-secondary me-1" onclick="editCalendarEvent(' + evento.id + ')"><i class="bi bi-pencil"></i></button>';
+                list += '<button class="btn btn-sm btn-outline-danger" onclick="deleteCalendarEvent(' + evento.id + ')"><i class="bi bi-trash"></i></button></div>';
+            }
             list += '</div>';
             if (evento.description) {
                 list += '<p class="mt-2 mb-0 text-muted">' + $('<div>').text(evento.description).html() + '</p>';
@@ -189,10 +201,10 @@ function loadCalendarEvents() {
             calendarEvents = response.data;
             renderCalendar();
         } else {
-            alert(response.message || 'Error al cargar eventos');
+            showAlert('error', response.message || 'Error al cargar eventos');
         }
     }).fail(function() {
-        alert('Error al cargar eventos del calendario');
+        showAlert('error', 'Error al cargar eventos del calendario');
     });
 }
 
@@ -209,7 +221,7 @@ function openCalendarModal(dateKey) {
 function editCalendarEvent(id) {
     $.getJSON(baseUrl + '/src/controllers/calendar.php?action=get&id=' + id).done(function(response) {
         if (response.status !== 'ok') {
-            alert(response.message || 'Evento no encontrado');
+            showAlert('error', response.message || 'Evento no encontrado');
             return;
         }
         var evento = response.data;
@@ -221,22 +233,26 @@ function editCalendarEvent(id) {
         $('#event_description').val(evento.description);
         calendarModal.show();
     }).fail(function() {
-        alert('Error al cargar evento');
+        showAlert('error', 'Error al cargar evento');
     });
 }
 
 function deleteCalendarEvent(id) {
-    if (!confirm('¿Eliminar este evento?')) return;
-    $.post(baseUrl + '/src/controllers/calendar.php?action=delete', {
-        id: id,
-        csrf_token: '<?= $_SESSION['csrf_token'] ?? '' ?>'
-    }, function(response) {
-        if (response.status === 'ok') {
-            loadCalendarEvents();
-        } else {
-            alert(response.message || 'No se pudo eliminar el evento');
-        }
-    }, 'json');
+    showConfirm('¿Eliminar evento?', '¿Eliminar este evento? Esta acción no se puede deshacer.', 'Eliminar', 'Cancelar')
+        .then(function(confirmed) {
+            if (!confirmed) return;
+
+            $.post(baseUrl + '/src/controllers/calendar.php?action=delete', {
+                id: id,
+                csrf_token: '<?= $_SESSION['csrf_token'] ?? '' ?>'
+            }, function(response) {
+                if (response.status === 'ok') {
+                    loadCalendarEvents();
+                } else {
+                    showAlert('error', response.message || 'No se pudo eliminar el evento');
+                }
+            }, 'json');
+        });
 }
 
 $(document).ready(function() {
@@ -271,10 +287,10 @@ $(document).ready(function() {
                 calendarModal.hide();
                 loadCalendarEvents();
             } else {
-                alert(response.message || 'Error al guardar evento');
+                showAlert('error', response.message || 'Error al guardar evento');
             }
         }, 'json').fail(function() {
-            alert('Error al guardar evento');
+            showAlert('error', 'Error al guardar evento');
         });
     });
 });

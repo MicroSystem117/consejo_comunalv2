@@ -1,7 +1,12 @@
 <?php
 require_once __DIR__ . "/../models/comunity_db.php";
-header('Content-Type: application/json; charset=utf-8');
 session_start();
+
+$action = $_REQUEST['action'] ?? 'list';
+
+if (!in_array($action, ['pdf'], true)) {
+    header('Content-Type: application/json; charset=utf-8');
+}
 
 // CSRF Validation - Temporarily simplified
 function validateCsrfToken() {
@@ -31,8 +36,6 @@ try {
     exit;
 }
 
-$action = $_REQUEST['action'] ?? 'list';
-
 // Validate CSRF for state-changing operations (temporarily disabled for testing)
 $writeActions = ['create', 'update', 'delete'];
 // if (in_array($action, $writeActions)) {
@@ -41,8 +44,56 @@ $writeActions = ['create', 'update', 'delete'];
 //     }
 // }
 
+function getSessionUserCi() {
+    return intval($_SESSION['user_ci'] ?? 0);
+}
+
+function isLevel3User() {
+    return (int) ($_SESSION['id_level'] ?? 3) === 3;
+}
+
+function enforceLevel3PersonAccessByCi($ci) {
+    if (isLevel3User() && getSessionUserCi() !== intval($ci)) {
+        echo json_encode(['status' => 'error', 'message' => 'Acceso denegado']);
+        exit;
+    }
+}
+
+function enforceLevel3PersonAccessById($conn, $id) {
+    $stmt = $conn->prepare("SELECT ci_person FROM person WHERE id_person = ? LIMIT 1");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$row) {
+        echo json_encode(['status' => 'error', 'message' => 'Persona no encontrada']);
+        exit;
+    }
+
+    enforceLevel3PersonAccessByCi($row['ci_person']);
+    return $row;
+}
+
+function ensureLevel3CiMatchesUser($ci) {
+    if (isLevel3User() && getSessionUserCi() !== intval($ci)) {
+        echo json_encode(['status' => 'error', 'message' => 'Solo puedes acceder o modificar tu propia información']);
+        exit;
+    }
+}
+
 if ($action === 'list') {
-    $stmt = $conn->prepare("SELECT p.id_person, p.name_person, p.ci_person, p.birth_person, p.id_family, f.surname_family FROM person p LEFT JOIN family f ON p.id_family = f.id_family ORDER BY p.id_person DESC");
+    if (isLevel3User()) {
+        $userCi = getSessionUserCi();
+        if (!$userCi) {
+            echo json_encode(['status' => 'ok', 'data' => []]);
+            exit;
+        }
+        $stmt = $conn->prepare("SELECT p.id_person, p.name_person, p.ci_person, p.birth_person, p.id_family, f.surname_family FROM person p LEFT JOIN family f ON p.id_family = f.id_family WHERE p.ci_person = ? ORDER BY p.id_person DESC");
+        $stmt->bind_param('i', $userCi);
+    } else {
+        $stmt = $conn->prepare("SELECT p.id_person, p.name_person, p.ci_person, p.birth_person, p.id_family, f.surname_family FROM person p LEFT JOIN family f ON p.id_family = f.id_family ORDER BY p.id_person DESC");
+    }
     $stmt->execute();
     $res = $stmt->get_result();
     $rows = [];
@@ -63,6 +114,7 @@ if ($action === 'get') {
     $res = $stmt->get_result();
     $row = $res->fetch_assoc();
     if ($row) {
+        enforceLevel3PersonAccessByCi($row['ci_person']);
         echo json_encode(['status'=>'ok','data'=>$row]);
     } else {
         echo json_encode(['status'=>'error','message'=>'Persona no encontrada']);
@@ -83,6 +135,8 @@ if ($action === 'create') {
     if (!is_numeric($ci) || $ci < 1000000 || $ci > 99999999) {
         echo json_encode(['status'=>'error','message'=>'Cedula invalida']); exit;
     }
+
+    ensureLevel3CiMatchesUser($ci);
 
     // Verificar si la cedula ya existe
     $check = $conn->prepare("SELECT id_person FROM person WHERE ci_person = ?");
@@ -203,6 +257,9 @@ if ($action === 'update') {
         echo json_encode(['status'=>'error','message'=>'Cedula invalida']); exit;
     }
 
+    enforceLevel3PersonAccessById($conn, $id);
+    ensureLevel3CiMatchesUser($ci);
+
     $id_family = isset($_POST['id_family']) ? intval($_POST['id_family']) : 0;
 
     if ($id_family > 0) {
@@ -292,6 +349,8 @@ if ($action === 'delete') {
     $id = intval($_POST['id'] ?? 0);
     if (!$id) { echo json_encode(['status'=>'error','message'=>'id faltante']); exit; }
 
+    enforceLevel3PersonAccessById($conn, $id);
+
     $stmt = $conn->prepare("DELETE FROM person WHERE id_person = ?");
     $stmt->bind_param('i', $id);
     if ($stmt->execute()) {
@@ -330,10 +389,21 @@ if ($action === 'pdf') {
         $person = $stmt->get_result()->fetch_assoc();
 
         if (!$person) throw new Exception("Persona no encontrada");
+        enforceLevel3PersonAccessByCi($person['ci_person']);
 
         // Generación del PDF con mPDF
         require_once __DIR__ . '/../../vendor/autoload.php';
-        $mpdf = new \Mpdf\Mpdf();
+        $tmpPath = realpath(__DIR__ . '/../../tmp');
+        $mpdf = new \Mpdf\Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'Letter',
+            'default_font_size' => 10,
+            'margin_top' => 15,
+            'margin_bottom' => 15,
+            'margin_left' => 15,
+            'margin_right' => 15,
+            'tempDir' => $tmpPath ?: __DIR__ . '/../../tmp',
+        ]);
 
         // Hacer que $person esté disponible en el template
         extract(["person" => $person]);
@@ -348,6 +418,54 @@ if ($action === 'pdf') {
         echo "<h2>Error al generar PDF:</h2><pre>" . htmlspecialchars($e->getMessage()) . "</pre>";
         exit;
     }
+}
+
+// Acción para devolver detalles de vivienda y familia de una persona
+if ($action === 'details') {
+    $id = intval($_GET['id'] ?? 0);
+    if (!$id) {
+        echo json_encode(['status' => 'error', 'message' => 'ID inválido']);
+        exit;
+    }
+
+    // Traer información de familia, vivienda, manzana y calle
+    $stmt = $conn->prepare(
+        "SELECT p.id_person, p.name_person, p.ci_person, p.birth_person,
+                f.id_family, f.surname_family,
+                h.id_house, h.number_house,
+                s.id_square, s.codigo_square,
+                st.id_street, st.name_street
+         FROM person p
+         LEFT JOIN family f ON p.id_family = f.id_family
+         LEFT JOIN house h ON f.id_house = h.id_house
+         LEFT JOIN square s ON h.id_square = s.id_square
+         LEFT JOIN street st ON s.id_street = st.id_street
+         WHERE p.id_person = ? LIMIT 1"
+    );
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $personDetail = $stmt->get_result()->fetch_assoc();
+
+    if (!$personDetail) {
+        echo json_encode(['status' => 'error', 'message' => 'Persona no encontrada']);
+        exit;
+    }
+
+    enforceLevel3PersonAccessByCi($personDetail['ci_person']);
+
+    // Traer miembros de la misma familia (si existe familia)
+    $members = [];
+    if (!empty($personDetail['id_family'])) {
+        $mf = $conn->prepare("SELECT id_person, name_person, ci_person, birth_person FROM person WHERE id_family = ? ORDER BY name_person ASC");
+        $mf->bind_param('i', $personDetail['id_family']);
+        $mf->execute();
+        $resm = $mf->get_result();
+        while ($r = $resm->fetch_assoc()) $members[] = $r;
+        $mf->close();
+    }
+
+    echo json_encode(['status' => 'ok', 'data' => ['person' => $personDetail, 'members' => $members]]);
+    exit;
 }
 
 echo json_encode(['status'=>'error','message'=>'Accion no soportada']);
