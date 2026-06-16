@@ -42,12 +42,27 @@ $action = $_GET['mode'] ?? $_POST['action'] ?? 'list';
 if ($action === 'list') {
     header('Content-Type: application/json');
     
-    $stmt = $conn->prepare("
-        SELECT u.id_user, u.name, u.surname, u.ci, u.birth, u.id_level, l.user_role 
-        FROM `user` u 
-        LEFT JOIN `level` l ON u.id_level = l.id_level 
-        ORDER BY u.id_user DESC
-    ");
+    // Non-admins can only see their own user
+    $current_user_id = $_SESSION['user_id'] ?? 0;
+    $current_user_level = $_SESSION['id_level'] ?? 3;
+    
+    if ($current_user_level == 1) {
+        $stmt = $conn->prepare("
+            SELECT u.id_user, u.name, u.surname, u.ci, u.birth, u.id_level, l.user_role 
+            FROM `user` u 
+            LEFT JOIN `level` l ON u.id_level = l.id_level 
+            ORDER BY u.id_user DESC
+        ");
+    } else {
+        $stmt = $conn->prepare("
+            SELECT u.id_user, u.name, u.surname, u.ci, u.birth, u.id_level, l.user_role 
+            FROM `user` u 
+            LEFT JOIN `level` l ON u.id_level = l.id_level 
+            WHERE u.id_user = ?
+            ORDER BY u.id_user DESC
+        ");
+        $stmt->bind_param('i', $current_user_id);
+    }
     $stmt->execute();
     $res = $stmt->get_result();
     
@@ -63,6 +78,14 @@ if ($action === 'list') {
 // Get single user
 if ($action === 'get') {
     $id = $_GET['id'] ?? 0;
+    $current_user_id = $_SESSION['user_id'] ?? 0;
+    $current_user_level = $_SESSION['id_level'] ?? 3;
+    
+    // Non-admins can only get their own user
+    if ($current_user_level != 1 && $id != $current_user_id) {
+        echo json_encode(['error' => 'No tiene permiso para ver este usuario']);
+        exit;
+    }
     
     $stmt = $conn->prepare("
         SELECT u.*, l.user_role 
@@ -85,6 +108,14 @@ if ($action === 'get') {
 // Get security questions for user
 if ($action === 'getSecQuestion') {
     $id = $_GET['id'] ?? 0;
+    $current_user_id = $_SESSION['user_id'] ?? 0;
+    $current_user_level = $_SESSION['id_level'] ?? 3;
+    
+    // Non-admins can only get their own security questions
+    if ($current_user_level != 1 && $id != $current_user_id) {
+        echo json_encode([]);
+        exit;
+    }
     
     $stmt = $conn->prepare("SELECT QuestOne, QuestTwo FROM SecQuestion WHERE id_user = ?");
     $stmt->bind_param('i', $id);
@@ -103,7 +134,6 @@ if ($action === 'getSecQuestion') {
 if ($action === 'save') {
     if (!validateCsrfToken()) exit;
     
-    // Check if user has permission (only admin level 1 can manage users)
     $current_user_id = $_SESSION['user_id'] ?? 0;
     $stmt = $conn->prepare("SELECT id_level FROM `user` WHERE id_user = ?");
     $stmt->bind_param('i', $current_user_id);
@@ -111,19 +141,28 @@ if ($action === 'save') {
     $res = $stmt->get_result();
     $current_user = $res->fetch_assoc();
     
-    if (!$current_user || $current_user['id_level'] != 1) {
-        echo json_encode(['status' => 'error', 'message' => 'No tiene permisos para gestionar usuarios']);
+    if (!$current_user) {
+        echo json_encode(['status' => 'error', 'message' => 'Usuario no autenticado']);
         exit;
     }
     
     $id_user = $_POST['id_user'] ?? null;
+    $user_level = $current_user['id_level'];
+    
+    // Non-admin can only edit their own user
+    if ($user_level != 1 && $id_user != $current_user_id) {
+        echo json_encode(['status' => 'error', 'message' => 'Solo puede editar su propio usuario']);
+        exit;
+    }
+    
+// Non-admin cannot set level
+    $id_level = $user_level == 1 ? (int)($_POST['id_level'] ?? 3) : $user_level;
     $name = trim($_POST['name'] ?? '');
     $surname = trim($_POST['surname'] ?? '');
     $ci = (int)($_POST['ci'] ?? 0);
     $birth = $_POST['birth'] ?? null;
-    $id_level = (int)($_POST['id_level'] ?? 3);
     $pass = $_POST['pass'] ?? '';
-    
+
     if (!$name || !$ci) {
         echo json_encode(['status' => 'error', 'message' => 'Nombre y Cédula son requeridos']);
         exit;
@@ -142,7 +181,12 @@ if ($action === 'save') {
             $stmt->bind_param('ssissi', $name, $surname, $ci, $birth, $id_level, $id_user);
         }
     } else {
-        // Create new user
+        // Non-admins cannot create new users
+        if ($user_level != 1) {
+            echo json_encode(['status' => 'error', 'message' => 'No tiene permiso para crear usuarios']);
+            exit;
+        }
+        // Create new user (admin only)
         if (empty($pass)) {
             echo json_encode(['status' => 'error', 'message' => 'La contraseña es requerida para nuevos usuarios']);
             exit;

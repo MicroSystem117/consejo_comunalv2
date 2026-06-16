@@ -327,8 +327,21 @@ if ($action === 'register') {
     $birth = $_POST['birth'] ?? null;
     $pass = $_POST['pass'] ?? '';
 
-    if (!$ci || !$pass || !$name) {
+    if (!$ci || !$pass || !$name || !$birth) {
         echo json_encode(['status' => 'error', 'message' => 'Campos requeridos faltantes']);
+        exit;
+    }
+
+    $birthDate = DateTime::createFromFormat('Y-m-d', $birth);
+    $birthErrors = DateTime::getLastErrors();
+    if (!$birthDate || $birthErrors['warning_count'] > 0 || $birthErrors['error_count'] > 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Fecha de nacimiento inválida']);
+        exit;
+    }
+
+    $age = $birthDate->diff(new DateTime())->y;
+    if ($age < 18 || $age > 80) {
+        echo json_encode(['status' => 'error', 'message' => 'Debe tener entre 18 y 80 años para registrarse']);
         exit;
     }
 
@@ -363,8 +376,14 @@ if ($action === 'register') {
     $stmt = $conn->prepare("INSERT INTO `user` (name, surname, ci, birth, pass, id_level) VALUES (?,?,?,?,?,?)");
     $stmt->bind_param('ssissi', $name, $surname, $ci, $birth, $hash, $id_level);
     if ($stmt->execute()) {
-        $_SESSION['user_id'] = $stmt->insert_id;
         $inserted_id = $stmt->insert_id;
+        $_SESSION['user_id'] = $inserted_id;
+        $_SESSION['id_level'] = $id_level;
+        $_SESSION['user_name'] = $name;
+        $_SESSION['user_surname'] = $surname;
+        $_SESSION['user_fullname'] = trim($name . ' ' . $surname);
+        $_SESSION['user_ci'] = $ci;
+        $_SESSION['user_birth'] = $birth;
         // Regenerate session ID for security
         session_regenerate_id(true);
         echo json_encode(['status' => 'success', 'message' => 'Registro exitoso', 'user_id' => $inserted_id, 'ci' => $ci, 'redirect' => $base_url . '/index.php']);

@@ -1,4 +1,3 @@
-
 <?php
 // Mostrar errores para depuración
 ini_set('display_errors', 1);
@@ -87,9 +86,11 @@ $personas = obtenerTodasLasPersonas();
     </table>
 </div>
 
+<!-- END OF MAIN CONTENT -->
+
 <!-- Modal para Nueva/Editar Persona -->
 <div class="modal fade" id="personaModal" tabindex="-1" aria-labelledby="personaModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="personaModalLabel">Nueva Persona</h5>
@@ -99,48 +100,54 @@ $personas = obtenerTodasLasPersonas();
                 <input type="hidden" id="id_person" name="id_person" value="">
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="name_person" class="form-label">Nombre de la Persona</label>
-                        <input type="text" class="form-control" id="name_person" name="name_person" required placeholder="Ej: Juan Pérez">
-                    </div>
-                    <div class="mb-3">
-                        <label for="ci_person" class="form-label">Cédula de Identidad</label>
-                        <input type="number" class="form-control" id="ci_person" name="ci_person" required placeholder="Ej: 12345678" maxlength="9" max="999999999" oninput="if(this.value.length>9) this.value=this.value.slice(0,9);">
-                    </div>
-                    <div class="mb-3">
-                        <label for="birth_person" class="form-label">Fecha de Nacimiento</label>
-                        <input type="date" class="form-control" id="birth_person" name="birth_person">
-                    </div>
-                    <div class="mb-3">
-                        <label for="id_family" class="form-label">Familia existente (opcional)</label>
-                        <select class="form-select" id="id_family" name="id_family">
-                            <option value="">Crear nueva familia</option>
-                        </select>
-                    </div>
-
-                    <div class="alert alert-info small">Si no seleccionas familia existente, completa los campos de Calle / Manzana / Vivienda / Apellido para crear en secuencia.</div>
-
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label for="id_street" class="form-label">Calle</label>
-                            <select class="form-select" id="id_street" name="id_street">
-                                <option value="">Seleccionar Calle</option>
-                            </select>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name_person" class="form-label">Nombre de la Persona</label>
+                                <input type="text" class="form-control" id="name_person" name="name_person" required placeholder="Ej: Juan Pérez">
+                            </div>
+                            <div class="mb-3">
+                                <label for="ci_person" class="form-label">Cédula de Identidad</label>
+                                <input type="number" class="form-control" id="ci_person" name="ci_person" required placeholder="Ej: 12345678" maxlength="9" max="999999999" oninput="if(this.value.length>9) this.value=this.value.slice(0,9);">
+                            </div>
+                            <div class="mb-3">
+                                <label for="birth_person" class="form-label">Fecha de Nacimiento</label>
+                                <input type="date" class="form-control" id="birth_person" name="birth_person">
+                            </div>
                         </div>
-                        <div class="col-6 mb-3">
-                            <label for="id_square" class="form-label">Manzana</label>
-                            <select class="form-select" id="id_square" name="id_square">
-                                <option value="">Seleccionar Manzana</option>
-                            </select>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_family" class="form-label">Familia existente (opcional)</label>
+                                <select class="form-select" id="id_family" name="id_family">
+                                    <option value="">Crear nueva familia</option>
+                                </select>
+                            </div>
+
+                            <div class="alert alert-info small">Si no seleccionas familia existente, completa los campos de Calle / Manzana / Vivienda / Apellido para crear en secuencia.</div>
+
+                            <div class="row">
+                                <div class="col-6 mb-3">
+                                    <label for="id_street" class="form-label">Calle</label>
+                                    <select class="form-select" id="id_street" name="id_street">
+                                        <option value="">Seleccionar Calle</option>
+                                    </select>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <label for="id_square" class="form-label">Manzana</label>
+                                    <select class="form-select" id="id_square" name="id_square">
+                                        <option value="">Seleccionar Manzana</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="number_house" class="form-label">Número de Vivienda</label>
+                                <input type="text" class="form-control" id="number_house" name="number_house" placeholder="Ej: 12A">
+                            </div>
+                            <div class="mb-3">
+                                <label for="surname_family" class="form-label">Apellido Familia</label>
+                                <input type="text" class="form-control" id="surname_family" name="surname_family" placeholder="Ej: Pérez">
+                            </div>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="number_house" class="form-label">Número de Vivienda</label>
-                        <input type="text" class="form-control" id="number_house" name="number_house" placeholder="Ej: 12A">
-                    </div>
-                    <div class="mb-3">
-                        <label for="surname_family" class="form-label">Apellido Familia</label>
-                        <input type="text" class="form-control" id="surname_family" name="surname_family" placeholder="Ej: Pérez">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -152,123 +159,44 @@ $personas = obtenerTodasLasPersonas();
     </div>
 </div>
 
-        <style>
-        /* Forzamos al elemento raíz del modal a usar toda la pantalla real solo cuando está visible */
-        body div#personInfoModal.modal.show {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            max-width: 100vw !important;
-            max-height: 100vh !important;
-            z-index: 1060 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            background-color: transparent !important;
-            transform: none !important;
-        }
-
-        /* Hidden bootstrap modal fallback */
-        body div#personInfoModal.modal:not(.show) {
-            display: none !important;
-        }
-
-        /* Forzamos al cuadro dialog a desvincularse de la columna izquierda */
-        body div#personInfoModal.modal.show .modal-dialog {
-            position: absolute !important;
-            top: 50% !important;
-            left: 50% !important;
-            transform: translate(-50%, -50%) !important; /* Centrado matemático perfecto en pantalla */
-            margin: 0 !important;
-            width: 85% !important;
-            max-width: 850px !important;
-        }
-
-        /* Asegurar transparencia de los contenedores intermedios */
-        body div#personInfoModal .modal-content,
-        body div#personInfoModal .modal-body {
-            background: transparent !important;
-            background-color: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            width: 100% !important;
-        }
-
-        /* Estilo estricto para las tarjetas flotantes */
-        body div#personInfoModal .info-card {
-            background: #ffffff !important;
-            border-radius: 16px !important;
-            border: none !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
-        }
-
-        /* Título superior en blanco para resaltar con el desenfoque */
-        body div#personInfoModal .modal-title {
-            color: #ffffff !important;
-            font-weight: 700 !important;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.4) !important;
-        }
-
-        /* Poner la X de cerrar en blanco */
-        body div#personInfoModal .btn-close {
-            filter: invert(1) grayscale(1) brightness(2) !important;
-        }
-        </style>
-
-        <!-- Modal Más Información: Vivienda y Familia (rediseñado con cards y glassmorphism) -->
-        <div class="modal fade" id="personInfoModal" tabindex="-1" aria-labelledby="personInfoModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-                <div class="modal-content border-0 bg-transparent">
-                    <div class="modal-header border-0">
-                        <h5 class="modal-title" id="personInfoModalLabel">Información de Persona</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- Modal Más Información: Vivienda y Familia -->
+<div class="modal fade" id="personInfoModal" tabindex="-1" aria-labelledby="personInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="personInfoModalLabel">Información de Persona</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <h6 class="mb-2">Datos personales</h6>
+                        <p class="mb-1"><strong>Nombre:</strong> <span id="info_name">-</span></p>
+                        <p class="mb-1"><strong>Cédula:</strong> <span id="info_ci">-</span></p>
+                        <p class="mb-1"><strong>Fecha Nac.:</strong> <span id="info_birth">-</span></p>
                     </div>
-                    <div class="modal-body">
-                        <div class="container-fluid">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="card info-card">
-                                        <div class="card-body">
-                                            <h6 class="card-title">Datos personales</h6>
-                                            <p class="mb-1"><strong>Nombre:</strong> <span id="info_name">-</span></p>
-                                            <p class="mb-1"><strong>Cédula:</strong> <span id="info_ci">-</span></p>
-                                            <p class="mb-1"><strong>Fecha Nac.:</strong> <span id="info_birth">-</span></p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card info-card">
-                                        <div class="card-body">
-                                            <h6 class="card-title">Vivienda</h6>
-                                            <p class="mb-1"><strong>Número Vivienda:</strong> <span id="info_number_house">-</span></p>
-                                            <p class="mb-1"><strong>Manzana (Código):</strong> <span id="info_codigo_square">-</span></p>
-                                            <p class="mb-1"><strong>Calle:</strong> <span id="info_name_street">-</span></p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="card info-card">
-                                        <div class="card-body">
-                                            <h6 class="card-title">Familia</h6>
-                                            <p class="mb-1"><strong>Apellido Familia:</strong> <span id="info_surname">-</span></p>
-                                            <p class="mb-1"><strong>ID Familia:</strong> <span id="info_id_family">-</span></p>
-                                            <hr>
-                                            <h6 class="small mb-2">Miembros</h6>
-                                            <ul id="info_members" class="list-unstyled small mb-0"></ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="col-md-6">
+                        <h6 class="mb-2">Vivienda</h6>
+                        <p class="mb-1"><strong>Número Vivienda:</strong> <span id="info_number_house">-</span></p>
+                        <p class="mb-1"><strong>Manzana (Código):</strong> <span id="info_codigo_square">-</span></p>
+                        <p class="mb-1"><strong>Calle:</strong> <span id="info_name_street">-</span></p>
                     </div>
-                    <div class="modal-footer border-0">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+                    <div class="col-12">
+                        <h6 class="mb-2">Familia</h6>
+                        <p class="mb-1"><strong>Apellido Familia:</strong> <span id="info_surname">-</span></p>
+                        <p class="mb-1"><strong>ID Familia:</strong> <span id="info_id_family">-</span></p>
+                        <hr>
+                        <h6 class="small mb-2">Miembros</h6>
+                        <ul id="info_members" class="list-unstyled small mb-0"></ul>
                     </div>
                 </div>
             </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
         </div>
+    </div>
+</div>
 
 <script>
 var baseUrl = '<?= $base_url ?>';
@@ -506,14 +434,5 @@ document.addEventListener('DOMContentLoaded', function() {
     // Campo de solo números: Cédula
     let numberRegex = /[^\d]/g;
     restrictInput(document.querySelector('input[name="ci_person"]'), numberRegex);
-});
-
-// Añadir clase al body cuando el modal de info está abierto para estilizar el backdrop
-$(document).on('show.bs.modal', '#personInfoModal', function() {
-    $('body').addClass('person-info-open');
-});
-
-$(document).on('hidden.bs.modal', '#personInfoModal', function() {
-    $('body').removeClass('person-info-open');
 });
 </script>

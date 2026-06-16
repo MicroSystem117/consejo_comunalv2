@@ -21,8 +21,8 @@
         </button>
         <script>function toggleSidebar() { document.querySelector('.app-sidebar').classList.toggle('show'); }</script>
         <div class="logo">
-            <img src="<?= $base_url ?>/public/images/logo.png" alt="Consejo Comunal" class="navbar-logo">
-            <span>Consejo Comunal</span>
+            <img src="<?= $base_url ?>/public/images/logo.png" alt="Consejo Comunal Emprendedores de los Próceres" class="navbar-logo">
+            <span>Consejo Comunal Emprendedores de los Próceres</span>
         </div>
         <div class="user-menu">
             <div class="dropdown">
@@ -70,6 +70,7 @@
                         </div>
                     </li>
                     <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="<?= $base_url ?>/index.php?view=usuarios"><i class="bi bi-person-gear"></i> Editar Usuario</a></li>
                     <li><a class="dropdown-item" href="#" onclick="openPasswordModal(); return false;"><i class="bi bi-key"></i> Cambiar Contraseña</a></li>
                     <li>
                         <form action="<?= $base_url ?>/src/controllers/auth.php" method="POST" id="logoutForm" style="display:inline;">
@@ -83,13 +84,8 @@
                 </ul>
             </div>
         </div>
-    </header>
-    <script>
-        function openPasswordModal() { 
-            var modal = new bootstrap.Modal(document.getElementById('passwordModal'));
-            modal.show();
-        }
-    </script>
+</header>
+     
     <!-- Modal para Cambiar Contraseña -->
     <div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalLabel">
         <div class="modal-dialog">
@@ -144,8 +140,13 @@
             </div>
         </div>
     </div>
-    
-    <?php require_once __DIR__ . '/sidebar.php'; ?>
+        <?php if (!empty($security_questions_missing)): ?>
+            <div class="alert alert-warning mb-0 rounded-0 alert-security-warning text-end">
+                Por favor añada preguntas de seguridad para poder recuperar su contraseña en caso de olvidarla.
+                <a href="<?= $base_url ?>/index.php?view=usuarios" class="alert-link">Añadir ahora</a>
+            </div>
+        <?php endif; ?>
+<?php require_once __DIR__ . '/sidebar.php'; ?>
 <?php else: ?>
     <!-- Layout simple (para login) -->
     <div class="login-container">

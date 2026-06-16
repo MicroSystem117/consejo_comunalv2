@@ -265,6 +265,19 @@ try {
     error_log($e->getMessage());
 }
 
+// Detectar si el usuario actual aún no tiene preguntas de seguridad
+$security_questions_missing = false;
+if (!empty($_SESSION['user_id']) && isset($conn)) {
+        $stmt = $conn->prepare("SELECT 1 FROM SecQuestion WHERE id_user = ? AND QuestOne <> '' AND QuestTwo <> '' AND AnswerOne <> '' AND AnswerTwo <> '' LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param('i', $_SESSION['user_id']);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $security_questions_missing = !($res && $res->num_rows > 0);
+            $stmt->close();
+        }
+}
+
 // Manejo de operaciones para manzana
 if ($view === 'manzana' && isset($_GET['mode'])) {
     header('Content-Type: application/json');

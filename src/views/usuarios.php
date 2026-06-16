@@ -31,8 +31,8 @@ try {
 ?>
 
 <div class="page-header">
-    <h2><i class="bi bi-people"></i> Gestión de Usuarios</h2>
-    <p class="text-muted">Administra los usuarios del sistema</p>
+    <h2><i class="bi bi-person-gear"></i> Editar Usuario</h2>
+    <p class="text-muted">Gestiona tu información de usuario</p>
 </div>
 
 <div class="card">
@@ -100,6 +100,7 @@ try {
                         <input type="date" class="form-control form-control-sm" id="birth" name="birth">
                     </div>
                     
+                    <?php if ($is_admin): ?>
                     <div class="mb-2">
                         <label for="id_level" class="form-label small fw-bold">Rol *</label>
                         <select class="form-control form-control-sm" id="id_level" name="id_level" required>
@@ -109,10 +110,11 @@ try {
                             <option value="3">Usuario</option>
                         </select>
                     </div>
+                    <?php endif; ?>
                     
                     <div class="mb-2">
-                        <label for="pass" class="form-label small fw-bold">Contraseña <?php echo $is_admin ? '*' : ''; ?></label>
-                        <input type="password" class="form-control form-control-sm" id="pass" name="pass" <?php echo $is_admin ? 'required' : ''; ?> placeholder="Mínimo 8 caracteres">
+                        <label for="pass" class="form-label small fw-bold">Contraseña <?php echo $is_admin ? '*' : '(Opcional)'; ?></label>
+                        <input type="password" class="form-control form-control-sm" id="pass" name="pass" placeholder="Mínimo 8 caracteres">
                         <small class="text-muted d-block">8+ caracteres, mayúscula, minúscula, número y especial</small>
                     </div>
                     
@@ -161,52 +163,53 @@ var usersTable;
 
 $(document).ready(function() {
     // Initialize DataTable
-        usersTable = $('#usersTable').DataTable({
-        ajax: {
-            url: baseUrl + '/src/controllers/comunity_user.php?mode=list',
-            dataSrc: 'data'
-        },
-        columns: [
-            { data: 'id_user', width: '50px' },
-            { data: 'name' },
-            { data: 'surname' },
-            { data: 'ci' },
-            { 
-                data: 'birth',
-                render: function(data) {
-                    return data ? data : '-';
-                }
+usersTable = $('#usersTable').DataTable({
+            ajax: {
+                url: baseUrl + '/src/controllers/comunity_user.php?mode=list',
+                dataSrc: 'data'
             },
-            { 
-                data: 'user_role',
-                render: function(data, type, row) {
-                    var badgeClass = 'bg-secondary';
-                    if (row.id_level == 1) badgeClass = 'bg-danger';
-                    else if (row.id_level == 2) badgeClass = 'bg-warning text-dark';
-                    else badgeClass = 'bg-info text-dark';
-                    return '<span class="badge ' + badgeClass + '">' + (data || 'Usuario') + '</span>';
-                }
-            },
-            {
-                data: null,
-                render: function(data) {
-                    var buttons = '';
-                    if (isAdmin) {
-                        buttons = '<button class="btn btn-primary btn-sm me-1" onclick="editUser(' + data.id_user + ')"><i class="bi bi-pencil"></i></button>';
-                        buttons += '<button class="btn btn-danger btn-sm" onclick="deleteUser(' + data.id_user + ', \'' + (data.name || '') + '\')"><i class="bi bi-trash"></i></button>';
-                    } else {
-                        buttons = '<span class="text-muted small">Sin permisos</span>';
+            columns: [
+                { data: 'id_user', width: '60px' },
+                { data: 'name', width: '15%' },
+                { data: 'surname', width: '15%' },
+                { data: 'ci', width: '12%' },
+                { 
+                    data: 'birth',
+                    width: '12%',
+                    render: function(data) {
+                        return data ? data : '-';
                     }
-                    return buttons;
                 },
-                orderable: false,
-                width: '100px'
-            }
-        ],
-        language: {
-            url: baseUrl + '/public/vendor/datatables/es-ES.json'
-        },
-        paging: true,
+                { 
+                    data: 'user_role',
+                    width: '15%',
+                    render: function(data, type, row) {
+                        var badgeClass = 'bg-secondary';
+                        if (row.id_level == 1) badgeClass = 'bg-danger';
+                        else if (row.id_level == 2) badgeClass = 'bg-warning text-dark';
+                        else badgeClass = 'bg-info text-dark';
+                        return '<span class="badge ' + badgeClass + '">' + (data || 'Usuario') + '</span>';
+                    }
+                },
+                {
+                    data: null,
+                    render: function(data) {
+                        var currentUserId = <?php echo $_SESSION['user_id'] ?? 0; ?>;
+                        var buttons = '<button class="btn btn-primary btn-sm me-1" onclick="editUser(' + data.id_user + ')"><i class="bi bi-pencil"></i></button>';
+                        <?php if ($is_admin): ?>
+                        buttons += '<button class="btn btn-danger btn-sm" onclick="deleteUser(' + data.id_user + ', \'' + (data.name || '') + '\')"><i class="bi bi-trash"></i></button>';
+                        <?php endif; ?>
+                        return buttons;
+                    },
+                    orderable: false,
+                    width: '120px'
+                }
+            ],
+            language: {
+                url: baseUrl + '/public/vendor/datatables/es-ES.json'
+            },
+            autoWidth: true,
+            paging: true,
         pagingType: 'simple_numbers',
         pageLength: 10,
         lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'Todos']],

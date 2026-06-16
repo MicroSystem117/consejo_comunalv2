@@ -47,10 +47,61 @@ body {
     border: 4px solid #C8102E !important;
 }
 
+/* Estilos principales del Sistema del Consejo Comunal */
 
+/* Variables CSS */
+:root {
+    --primary-color: #C8102E;
+    --primary-dark: #A00D24;
+    --secondary-color: #0033A0;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #FFD100;
+    --info-color: #0033A0;
+    --light-color: #ffffff;
+    --dark-color: #0033A0;
+    --body-bg: #f8f9fa;
+    --sidebar-width: 250px;
+    --header-height: 56px;
+    --border-radius: 8px;
+    --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s ease;
+}
+
+/* Reset y base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--dark-color);
+    background-color: var(--body-bg);
+}
+
+/* PRUEBA RÁPIDA: si ves este fondo, significa que app.css está cargado */
 body {
-    display: flex;
-    flex-direction: column;
+    background-image: linear-gradient(135deg, rgba(200,16,46,0.05), rgba(0,51,160,0.05));
+}
+
+.app-header, .login-header {
+    border: 4px solid #C8102E !important;
+}
+
+/* Bootstrap modal fixes - force proper centering with transparent background */
+#personInfoModal,
+#personaModal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 1055 !important;
 }
 
 /* Layout principal */
@@ -431,6 +482,27 @@ body {
     padding-top: .375rem;
 }
 
+/* Ensure DataTables wrapper uses full width */
+.dataTables_wrapper {
+    width: 100%;
+}
+
+.dataTables_wrapper .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.dataTables_wrapper .row > div {
+    padding-left: .5rem;
+    padding-right: .5rem;
+}
+
+/* Make table columns distribute evenly */
+.table {
+    width: 100% !important;
+    table-layout: auto;
+}
+
 /* Dashboard stats and charts sizing */
 .dashboard-stat-card .dashboard-stat-icon {
     font-size: 1.6rem !important;
@@ -611,6 +683,12 @@ body {
     border: 1px solid #ffecb5;
 }
 
+.alert-security-warning {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    text-align: right;
+}
+
 .alert-info {
     background: #cff4fc;
     color: #055160;
@@ -639,7 +717,7 @@ body {
     visibility: visible;
 }
 
-.modal {
+.modal-overlay .modal-custom {
     background: white;
     border-radius: var(--border-radius);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -651,11 +729,11 @@ body {
     transition: var(--transition);
 }
 
-.modal-overlay.active .modal {
+.modal-overlay.active .modal-custom {
     transform: translateY(0);
 }
 
-.modal-header {
+.modal-custom-header {
     padding: 20px;
     border-bottom: 1px solid #e9ecef;
     display: flex;
@@ -663,12 +741,12 @@ body {
     align-items: center;
 }
 
-.modal-header h3 {
+.modal-custom-header h3 {
     margin: 0;
     font-size: 1.25rem;
 }
 
-.modal-close {
+.modal-custom-close {
     background: none;
     border: none;
     font-size: 1.5rem;
@@ -677,11 +755,11 @@ body {
     line-height: 1;
 }
 
-.modal-body {
+.modal-custom-body {
     padding: 20px;
 }
 
-.modal-footer {
+.modal-custom-footer {
     padding: 16px 20px;
     border-top: 1px solid #e9ecef;
     display: flex;
@@ -857,193 +935,46 @@ body {
     }
 }
 
-/* Glassmorphism styles for person info modal */
-body.person-info-open .modal-backdrop {
-    background-color: rgba(0, 0, 0, 0.35) !important;
-    backdrop-filter: blur(6px) saturate(120%);
-    -webkit-backdrop-filter: blur(6px) saturate(120%);
-    transition: background-color 0.25s ease, backdrop-filter 0.25s ease;
-}
-
-#personInfoModal .modal-content {
-    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 10px 30px rgba(2,6,23,0.35);
-    backdrop-filter: blur(8px) saturate(120%);
-    -webkit-backdrop-filter: blur(8px) saturate(120%);
-    color: #0b1220;
-    overflow: visible;
-}
-
-#personInfoModal .modal-header,
-#personInfoModal .modal-footer {
-    background: transparent;
-    border: none;
-}
-
-.info-card {
-    border-radius: 12px;
-    box-shadow: 0 8px 22px rgba(9, 30, 66, 0.12);
-    border: 1px solid rgba(13, 110, 253, 0.06);
-    background: white;
-    overflow: hidden;
-}
-
-.info-card .card-body {
-    padding: 16px;
-}
-
-/* Make list items inside cards subtle */
-#info_members li {
-    padding: 8px 0;
-    border-bottom: 1px dashed rgba(0,0,0,0.06);
-}
-
-@media (max-width: 576px) {
-    #personInfoModal .modal-dialog { max-width: 95%; }
-}
-
-/* Reglas definitivas para resetear el contenedor blanco y forzar centrado */
-.modal-content,
-.modal-body,
-div[view="personas"] .modal-content {
-    background-color: transparent !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-}
-
-.modal-dialog {
-    max-width: 850px !important; /* Ajusta el ancho horizontal de tu bloque de tarjetas */
-    margin: 1.75rem auto !important; /* Centra horizontalmente en CSS tradicional */
-}
-
-.modal-backdrop.show {
-    background-color: rgba(0, 0, 0, 0.4) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px);
-}
-
-.modal-header h5,
-.modal-header .modal-title,
-.modal-header {
-    color: #ffffff !important;
-    border-bottom: none !important;
-}
-
-.modal-header .btn-close {
-    filter: invert(1) grayscale(1) brightness(2);
-}
-
-/* Aux: evita clases de ancho fijo heredadas causando columnas a la izquierda */
-.modal-content[class*="w-25"],
-.modal-content[class*="w-50"],
-.modal-content[class*="col-md-4"],
-.modal-content[style*="width:"] {
-    width: auto !important;
-    max-width: none !important;
-}
-
-/* CSS Corrector: anular comportamiento lateral y forzar centrado */
-div[id^="modal"] .modal-dialog,
-.modal-dialog-centered {
-    max-width: 800px !important;    /* Ajusta el ancho para que quepan dos tarjetas al lado */
-    width: 85% !important;
-    margin: 1.75rem auto !important; /* Centrado clásico en el viewport */
-    left: 0 !important;              /* Resetea cualquier desvío a la izquierda */
-    right: 0 !important;
-    position: relative !important;
-    display: flex !important;
-    align-items: center !important;
-}
-
-div[id^="modal"] .modal-content {
-    height: auto !important;         /* Evita que se estire verticalmente de arriba a abajo */
-    background: transparent !important;
-    border: none !important;
-}
-
-div[id^="modal"] .modal-body {
-    width: 100% !important;
-    padding: 20px !important;
-}
-
-/* CSS Corrector - Override definitivo para forzar comportamiento nativo de Bootstrap */
-#personInfoModal.modal.show {
+/* Override Bootstrap modal - force centering and remove sidebar margin effect */
+.modal {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    padding: 0 !important;
+    z-index: 1055 !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+}
+
+.modal.show.d-block {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    margin-left: 0 !important;
 }
 
-#personInfoModal.modal.show .modal-dialog {
-    position: relative !important;
-    margin: auto !important; /* Distribuye el espacio por igual en los 4 lados */
-    left: 0 !important;
-    right: 0 !important;
-    top: 0 !important;
-    bottom: 0 !important;
-    max-width: 800px !important; /* Evita que colapse o se estire de más */
+.modal .modal-dialog {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+}
+
+.modal-lg .modal-dialog {
     width: 90% !important;
+    max-width: 850px !important;
 }
 
-#personInfoModal .modal-content {
-    height: auto !important;
-    max-height: 90vh;
-    overflow-y: auto; /* Agrega scroll interno si el contenido supera la pantalla */
-    background: transparent !important;
+.modal .modal-dialog:not(.modal-lg) {
+    width: 90% !important;
+    max-width: 500px !important;
 }
 
-#personInfoModal .info-card {
-    background: rgba(255, 255, 255, 0.98) !important; /* Blanco limpio */
-    border-radius: 16px !important;
-    border: none !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
-}
-
-#personInfoModal .modal-title {
-    color: #ffffff !important;
-    font-weight: 700;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-#personInfoModal .btn-close {
-    filter: invert(1) grayscale(1) brightness(2) !important;
-}
-
-/* Asegurar backdrop oscuro y blur */
+/* Modal backdrop styling */
 .modal-backdrop.show {
     background-color: rgba(0, 0, 0, 0.4) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-}
-
-/* Person Info Modal: transparent background and centered dialog */
-#personInfoModal .modal-dialog {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: calc(100vh - 1rem);
-}
-#personInfoModal .modal-content {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    color: inherit;
-}
-#personInfoModal .modal-header,
-#personInfoModal .modal-footer {
-    background: transparent !important;
-    border: none !important;
-}
-#personInfoModal .modal-body {
-    background: transparent !important;
 }
 
 @media (max-width: 768px) {
@@ -1275,62 +1206,6 @@ div[id^="modal"] .modal-body {
 .password-rules {
     font-size: 12px;
     margin-top: 8px;
-}
-
-/* CSS Definitivo de Rescate: forzar que el modal salga del flujo lateral heredado */
-body.modal-open #personInfoModal,
-#personInfoModal {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    z-index: 1055 !important; /* Asegura que flote sobre todo */
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 0 !important;
-}
-
-#personInfoModal .modal-dialog {
-    width: 90% !important;
-    max-width: 850px !important; /* Ancho ideal para que respiren las tarjetas */
-    min-width: 320px !important;
-    margin: auto !important; /* Distribuye márgenes automáticos en los 4 lados */
-    transform: none !important; /* Rompe traslaciones raras de CSS */
-}
-
-#personInfoModal .modal-content {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    width: 100% !important;
-    height: auto !important;
-    max-height: 90vh !important;
-    overflow-y: auto !important;
-}
-
-#personInfoModal .modal-body {
-    width: 100% !important;
-    background: transparent !important;
-    padding: 15px !important;
-}
-
-#personInfoModal .modal-header .modal-title {
-    color: #ffffff !important;
-    font-weight: 700 !important;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6) !important;
-}
-
-#personInfoModal .btn-close {
-    filter: invert(1) grayscale(1) brightness(2) !important;
-}
-
-/* Asegurar backdrop oscuro y blur (refuerzo) */
-.modal-backdrop.show {
-    background-color: rgba(0, 0, 0, 0.4) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
 }
 
 .password-rules .rule {

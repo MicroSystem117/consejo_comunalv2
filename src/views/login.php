@@ -69,8 +69,8 @@ $layout = 'simple';
             </div>
             <div class="col-6">
                 <div class="form-group mb-1">
-                    <label class="form-label small fw-bold">Nacimiento</label>
-                    <input type="date" class="form-control form-control-sm py-1" name="birth">
+                    <label class="form-label small fw-bold">Nacimiento *</label>
+                    <input type="date" class="form-control form-control-sm py-1" name="birth" required min="<?= date('Y-m-d', strtotime('-80 years')) ?>" max="<?= date('Y-m-d', strtotime('-18 years')) ?>">
                 </div>
             </div>
         </div>
@@ -199,6 +199,18 @@ function switchTab(tab) {
 
 function passwordValid(p) {
     return p.length >= 8 && /[A-Z]/.test(p) && /[a-z]/.test(p) && /[0-9]/.test(p) && /[^A-Za-z0-9]/.test(p);
+}
+
+function calculateAge(birth) {
+    var birthDate = new Date(birth);
+    if (isNaN(birthDate)) return null;
+    var today = new Date();
+    var age = today.getFullYear() - birthDate.getFullYear();
+    var monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age;
 }
 
 function showLoginAlert(type, message) {
@@ -391,6 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Register submit handler called');
         var pass = document.getElementById('regPass').value;
         var passConfirm = document.getElementById('regPassConfirm').value;
+        var birth = this.querySelector('input[name="birth"]').value;
         
         if (pass !== passConfirm) {
             showLoginAlert('error', 'Las contrasenas no coinciden');
@@ -399,6 +412,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!passwordValid(pass)) {
             showLoginAlert('error', 'La contrasena no cumple los requisitos');
+            return;
+        }
+
+        if (!birth) {
+            showLoginAlert('error', 'Debe ingresar su fecha de nacimiento');
+            return;
+        }
+
+        var age = calculateAge(birth);
+        if (age === null || age < 18 || age > 80) {
+            showLoginAlert('error', 'Debe tener entre 18 y 80 años para registrarse');
             return;
         }
         

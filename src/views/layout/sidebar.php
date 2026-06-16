@@ -26,3 +26,6 @@ $sidebarItems = obtenerMenuItemsPorNivel($userLevel);
     <div class="main-wrapper">
         <main class="main-content">
 <?php
+// Modal portal - will be used to move modals outside the sidebar container
+$GLOBALS['modalPortalNeeded'] = true;
+?>

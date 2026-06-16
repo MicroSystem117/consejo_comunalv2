@@ -2,6 +2,48 @@
  * app.js - JavaScript principal del Sistema del Consejo Comunal
  */
 
+// Fix Bootstrap modals - center them properly and move to portal before showing
+$(document).on('show.bs.modal', '.modal', function() {
+    var $modal = $(this);
+    
+    // Move modal to portal BEFORE it shows to avoid sidebar margin
+    var $portal = $('#modalPortal');
+    if ($portal.length && !$portal.is($modal.parent())) {
+        $modal.appendTo($portal);
+    }
+    
+    // Force centering after move
+    setTimeout(function() {
+        $modal.css({
+            'display': 'flex',
+            'align-items': 'center',
+            'justify-content': 'center',
+            'position': 'fixed',
+            'top': '0',
+            'left': '0',
+            'width': '100vw',
+            'height': '100vh',
+            'z-index': '1055',
+            'margin-left': '0'
+        });
+        
+        var maxWidth = $modal.attr('id') === 'passwordModal' ? '500px' : '850px';
+        $modal.find('.modal-dialog').css({
+            'position': 'fixed',
+            'top': '50%',
+            'left': '50%',
+            'margin': '0',
+            'transform': 'translate(-50%, -50%)',
+            'width': '90%',
+            'max-width': maxWidth
+        });
+    }, 1);
+});
+
+$(document).on('hidden.bs.modal', '.modal', function() {
+    $(this).css('display', 'none');
+});
+
 // Toast notification function
 window.showToast = function(type, message) {
     var toastId = 'toast-' + Date.now();

@@ -12,7 +12,7 @@ $rbacPermissions = [
     'calendar' => [1, 2, 3],
     'statistics' => [1, 2],
     'backup' => [1],
-    'usuarios' => [1],
+    'usuarios' => [1, 2, 3],
 ];
 
 $rbacMenuItems = [
@@ -74,10 +74,10 @@ $rbacMenuItems = [
     ],
     [
         'view' => 'usuarios',
-        'label' => 'Usuarios',
-        'icon' => 'bi-people',
+        'label' => 'Editar Usuario',
+        'icon' => 'bi-person-gear',
         'route' => 'index.php?view=usuarios',
-        'levels' => [1],
+        'levels' => [1, 2, 3],
     ],
     [
         'view' => 'backup',
