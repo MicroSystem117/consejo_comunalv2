@@ -11,7 +11,7 @@ $showActions = $userLevel !== 3;
     <div class="page-actions">
         <div class="btn-toolbar mb-2 mb-md-0">
             <div class="btn-group me-2">
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportTableToCSV('callesTable', 'calles.csv')">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportCallesCSV()">
                     <i class="bi bi-download"></i> Exportar CSV
                 </button>
             </div>
@@ -24,43 +24,46 @@ $showActions = $userLevel !== 3;
     </div>
 </div>
 
-<!-- Tabla de calles -->
+<!-- Grid de calles -->
 <div class="table-container fade-in">
-    <table class="table table-striped table-hover table-sm" id="callesTable">
-        <thead>
-            <tr>
-                <th>Código</th>
-                <th>Nombre de la Calle</th>
-                <?php if ($showActions): ?>
-                    <th>Acciones</th>
-                <?php endif; ?>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (!empty($calles)): ?>
-                <?php foreach ($calles as $c): ?>
-                    <tr data-id="<?= $c['id_street'] ?>">
-                        <td><?= htmlspecialchars($c['codigo_street']) ?></td>
-                        <td><?= htmlspecialchars($c['name_street']) ?></td>
-                        <?php if ($showActions): ?>
-                            <td class="actions">
-                                <button class="btn btn-sm btn-warning" onclick="editCalle(<?= $c['id_street'] ?>)">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" onclick="deleteCalle(<?= $c['id_street'] ?>)">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </td>
-                        <?php endif; ?>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <tr>
-                    <td colspan="<?= $showActions ? 3 : 2 ?>" class="text-center text-muted">No hay calles registradas</td>
-                </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h5 class="mb-0">Calles</h5>
+            <small class="text-muted">Vistas en tarjetas</small>
+        </div>
+        <div class="ms-2">
+            <input id="callesSearch" type="search" class="form-control form-control-sm" placeholder="Buscar por código o nombre...">
+        </div>
+    </div>
+
+    <div id="callesGrid" class="row g-3">
+        <?php if (!empty($calles)): ?>
+            <?php foreach ($calles as $c): ?>
+                <div class="col-12 col-sm-6 col-md-4" data-id="<?= $c['id_street'] ?>">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title mb-1"><?= htmlspecialchars($c['codigo_street']) ?></h6>
+                            <p class="fw-bold mb-2"><?= htmlspecialchars($c['name_street']) ?></p>
+                            <div class="d-flex gap-2">
+                                <?php if ($showActions): ?>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editCalle(<?= $c['id_street'] ?>)">
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteCalle(<?= $c['id_street'] ?>)">
+                                        <i class="bi bi-trash"></i> Eliminar
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="col-12">
+                <div class="alert alert-info mb-0">No hay calles registradas</div>
+            </div>
+        <?php endif; ?>
+    </div>
 </div>
 
 <!-- Modal para Nueva/Editar Calle -->
@@ -93,24 +96,37 @@ $showActions = $userLevel !== 3;
 </div>
 
 <script>
-// Initialize DataTable for calles table
+// Grid search and export for calles
 $(document).ready(function() {
-    var $table = $('#callesTable');
-    var dataRows = $table.find('tbody tr[data-id]');
-    
-    if (dataRows.length > 0) {
-        $table.DataTable({
-            language: {
-                url: '<?= $base_url ?>/public/vendor/datatables/es-ES.json'
-            },
-            responsive: true,
-            paging: true,
-            pagingType: 'simple_numbers',
-            pageLength: 10,
-            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'Todos']],
-            dom: '<"row mb-2"<"col-sm-6"l><"col-sm-6"f>>t<"row mt-2"<"col-sm-6"i><"col-sm-6"p>>'
+    $('#callesSearch').on('input', function() {
+        var q = $(this).val().toLowerCase().trim();
+        $('#callesGrid').find('[data-id]').each(function() {
+            var code = $(this).find('.card-title').text().toLowerCase();
+            var name = $(this).find('.fw-bold').text().toLowerCase();
+            if (!q || code.indexOf(q) !== -1 || name.indexOf(q) !== -1) $(this).show(); else $(this).hide();
         });
-    }
+    });
+
+    window.exportCallesCSV = function() {
+        var rows = [];
+        rows.push(['codigo', 'name']);
+        $('#callesGrid').find('[data-id]').each(function() {
+            var $c = $(this);
+            var codigo = $c.find('.card-title').text().trim();
+            var nombre = $c.find('.fw-bold').text().trim();
+            rows.push([codigo, nombre]);
+        });
+        var csv = rows.map(function(r){ return r.map(function(cell){ return '"' + (String(cell).replace(/"/g,'""')) + '"'; }).join(','); }).join('\n');
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'calles.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 });
 
 // Function to handle calle form submission

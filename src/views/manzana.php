@@ -10,8 +10,8 @@ $showActions = $userLevel !== 3;
     <h1><i class="bi bi-grid-3x3"></i> Gestión de Manzana</h1>
     <div class="page-actions">
         <div class="btn-toolbar mb-2 mb-md-0">
-            <div class="btn-group me-2">
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportTableToCSV('manzanaTable', 'manzana.csv')">
+                <div class="btn-group me-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportManzanaCSV()">
                     <i class="bi bi-download"></i> Exportar CSV
                 </button>
             </div>
@@ -26,43 +26,45 @@ $showActions = $userLevel !== 3;
 
 <!-- Tabla de Manzana -->
 <div class="table-container fade-in">
-    <table id="manzanaTable" class="table table-striped table-hover table-sm">
-        <thead>
-            <tr>
-                <th>Código</th>
-                <th>Calle</th>
-                <th>Manzana</th>
-                <?php if ($showActions): ?>
-                    <th>Acciones</th>
-                <?php endif; ?>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (!empty($manzana)): ?>
-                <?php foreach ($manzana as $m): ?>
-                    <tr data-id="<?php echo $m['id_square']; ?>">
-                        <td><?php echo htmlspecialchars($m['codigo_square']); ?></td>
-                        <td><?php echo htmlspecialchars($m['name_street'] ?? 'Sin asignar'); ?></td>
-                        <td><?php echo htmlspecialchars($m['name_square']); ?></td>
-                        <?php if ($showActions): ?>
-                            <td class="actions">
-                                <button class="btn btn-sm btn-warning" onclick="editManzana(<?php echo $m['id_square']; ?>)">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" onclick="deleteManzana(<?php echo $m['id_square']; ?>)">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </td>
-                        <?php endif; ?>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <tr>
-                    <td colspan="<?= $showActions ? 4 : 3 ?>" class="text-center text-muted">No hay manzanas registradas</td>
-                </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h5 class="mb-0">Manzanas</h5>
+            <small class="text-muted">Vistas en cuadrícula</small>
+        </div>
+        <div class="ms-2">
+            <input id="manzanaSearch" type="search" class="form-control form-control-sm" placeholder="Buscar por código o nombre...">
+        </div>
+    </div>
+
+    <div id="manzanaGrid" class="row g-3">
+        <?php if (!empty($manzana)): ?>
+            <?php foreach ($manzana as $m): ?>
+                <div class="col-12 col-sm-6 col-md-4" data-id="<?= $m['id_square'] ?>">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title mb-1"><?= htmlspecialchars($m['codigo_square']) ?></h6>
+                            <p class="card-text small text-muted mb-2">Calle: <?= htmlspecialchars($m['name_street'] ?? 'Sin asignar') ?></p>
+                            <p class="fw-bold mb-2"><?= htmlspecialchars($m['name_square']) ?></p>
+                            <div class="d-flex gap-2">
+                                <?php if ($showActions): ?>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editManzana(<?= $m['id_square'] ?>)">
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteManzana(<?= $m['id_square'] ?>)">
+                                        <i class="bi bi-trash"></i> Eliminar
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="col-12">
+                <div class="alert alert-info mb-0">No hay manzanas registradas</div>
+            </div>
+        <?php endif; ?>
+    </div>
 </div>
 
 <!-- Modal para Nueva/Editar Manzana -->
@@ -108,23 +110,38 @@ $showActions = $userLevel !== 3;
 </div>
 
 <script>
-// Initialize DataTable for manzana table
+// Grid search and export
 $(document).ready(function() {
-    var $table = $('#manzanaTable');
-    var dataRows = $table.find('tbody tr[data-id]');
-    
-    if (dataRows.length > 0) {
-        $table.DataTable({
-            language: {
-                url: '<?= $base_url ?>/public/vendor/datatables/es-ES.json'
-            },
-            responsive: true,
-            paging: true,
-            pageLength: 10,
-            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'Todos']],
-            dom: '<"row"<"col-sm-6"l><"col-sm-6"f>>t<"row"<"col-sm-6"i><"col-sm-6"p>>'
+    $('#manzanaSearch').on('input', function() {
+        var q = $(this).val().toLowerCase().trim();
+        $('#manzanaGrid').find('[data-id]').each(function() {
+            var code = $(this).find('.card-title').text().toLowerCase();
+            var name = $(this).find('.fw-bold').text().toLowerCase();
+            if (!q || code.indexOf(q) !== -1 || name.indexOf(q) !== -1) $(this).show(); else $(this).hide();
         });
-    }
+    });
+
+    window.exportManzanaCSV = function() {
+        var rows = [];
+        rows.push(['codigo', 'calle', 'manzana']);
+        $('#manzanaGrid').find('[data-id]').each(function() {
+            var $c = $(this);
+            var codigo = $c.find('.card-title').text().trim();
+            var calle = $c.find('.card-text').text().replace(/^Calle:\s*/i, '').trim();
+            var nombre = $c.find('.fw-bold').text().trim();
+            rows.push([codigo, calle, nombre]);
+        });
+        var csv = rows.map(function(r){ return r.map(function(cell){ return '"' + (String(cell).replace(/"/g,'""')) + '"'; }).join(','); }).join('\n');
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'manzana.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 });
 
 // Function to handle manzana form submission

@@ -72,6 +72,7 @@
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="<?= $base_url ?>/index.php?view=usuarios"><i class="bi bi-person-gear"></i> Editar Usuario</a></li>
                     <li><a class="dropdown-item" href="#" onclick="openPasswordModal(); return false;"><i class="bi bi-key"></i> Cambiar Contraseña</a></li>
+                    <li><a class="dropdown-item" href="<?= $base_url ?>/public/docs/manual_usuario.pdf" target="_blank" rel="noopener"><i class="bi bi-book"></i> Manual de Usuario</a></li>
                     <li>
                         <form action="<?= $base_url ?>/src/controllers/auth.php" method="POST" id="logoutForm" style="display:inline;">
                             <input type="hidden" name="action" value="logout">
