@@ -34,7 +34,6 @@ $personas = obtenerTodasLasPersonas();
     <table class="table table-striped table-hover table-sm" id="personasTable">
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Nombre</th>
                 <th>Cédula</th>
                 <th>Fecha Nac.</th>
@@ -46,7 +45,6 @@ $personas = obtenerTodasLasPersonas();
             <?php if (!empty($personas)): ?>
                 <?php foreach ($personas as $p): ?>
                     <tr data-id="<?= $p['id_person'] ?>">
-                        <td><?= $p['id_person'] ?></td>
                         <td><?= htmlspecialchars($p['name_person']) ?></td>
                         <td><?= number_format($p['ci_person'], 0, '', '.') ?></td>
                         <td><?= $p['birth_person'] ? date('d/m/Y', strtotime($p['birth_person'])) : '-' ?></td>
@@ -79,7 +77,7 @@ $personas = obtenerTodasLasPersonas();
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="6" class="text-center text-muted">No hay personas registradas</td>
+                    <td colspan="5" class="text-center text-muted">No hay personas registradas</td>
                 </tr>
             <?php endif; ?>
         </tbody>
@@ -201,7 +199,7 @@ $personas = obtenerTodasLasPersonas();
 <script>
 var baseUrl = '<?= $base_url ?>';
 
-function loadStreets() {
+function loadStreets(selectedId, cb) {
     $.getJSON(baseUrl + '/src/controllers/comunity_street.php?action=list', function(response) {
         if (response.status === 'ok') {
             var $street = $('#id_street');
@@ -209,11 +207,15 @@ function loadStreets() {
             response.data.forEach(function(item) {
                 $street.append('<option value="' + item.id_street + '">' + item.name_street + '</option>');
             });
+            if (selectedId) $street.val(selectedId);
+            if (typeof cb === 'function') cb();
+        } else if (typeof cb === 'function') {
+            cb();
         }
-    });
+    }).fail(function() { if (typeof cb === 'function') cb(); });
 }
 
-function loadSquares(streetId) {
+function loadSquares(streetId, selectedId, cb) {
     $.getJSON(baseUrl + '/src/controllers/comunity_square.php?action=list', function(response) {
         if (response.status === 'ok') {
             var $square = $('#id_square');
@@ -223,11 +225,15 @@ function loadSquares(streetId) {
             }).forEach(function(item) {
                 $square.append('<option value="' + item.id_square + '">' + item.codigo_square + '</option>');
             });
+            if (selectedId) $square.val(selectedId);
+            if (typeof cb === 'function') cb();
+        } else if (typeof cb === 'function') {
+            cb();
         }
-    });
+    }).fail(function() { if (typeof cb === 'function') cb(); });
 }
 
-function loadFamilies() {
+function loadFamilies(selectedId, cb) {
     $.getJSON(baseUrl + '/src/controllers/comunity_family.php?action=list', function(response) {
         if (response.status === 'ok') {
             var $family = $('#id_family');
@@ -236,18 +242,22 @@ function loadFamilies() {
             response.data.forEach(function(item) {
                 $family.append('<option value="' + item.id_family + '">' + item.surname_family + ' (' + item.number_house + ', ' + item.codigo_square + ', ' + item.name_street + ')</option>');
             });
-            if (current) $family.val(current);
+            if (selectedId) $family.val(selectedId);
+            else if (current) $family.val(current);
+            if (typeof cb === 'function') cb();
+        } else if (typeof cb === 'function') {
+            cb();
         }
-    });
+    }).fail(function() { if (typeof cb === 'function') cb(); });
 }
 
 function resetPersonaForm() {
     $('#id_person').val('');
     $('#personaModalLabel').text('Nueva Persona');
     $('#personaForm')[0].reset();
-    loadStreets();
-    loadSquares(null);
-    loadFamilies();
+    loadStreets(null);
+    loadSquares(null, null);
+    loadFamilies(null);
 }
 
 $(document).ready(function() {
@@ -324,15 +334,28 @@ function editPerson(id) {
 
         resetPersonaForm();
         var persona = response.data;
+        // Populate basic fields
         $('#id_person').val(persona.id_person);
         $('#name_person').val(persona.name_person);
         $('#ci_person').val(persona.ci_person);
         $('#birth_person').val(persona.birth_person);
-        $('#id_family').val(persona.id_family || '');
 
-        if (persona.id_family) {
-            $('#surname_family').val(persona.surname_family || '');
-        }
+        // Load streets then squares, then set selected values
+        loadStreets(persona.id_street, function() {
+            loadSquares(persona.id_street, persona.id_square, function() {
+                // nothing else
+            });
+            if (persona.id_street) $('#id_street').val(persona.id_street);
+        });
+
+        // Load families and set selection
+        loadFamilies(persona.id_family, function() {
+            if (persona.id_family) $('#id_family').val(persona.id_family);
+        });
+
+        // Set house number and family surname
+        $('#number_house').val(persona.number_house || '');
+        $('#surname_family').val(persona.surname_family || '');
 
         $('#personaModalLabel').text('Editar Persona');
         $('#personaModal').modal('show');

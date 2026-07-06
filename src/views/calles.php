@@ -29,7 +29,6 @@ $showActions = $userLevel !== 3;
     <table class="table table-striped table-hover table-sm" id="callesTable">
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Código</th>
                 <th>Nombre de la Calle</th>
                 <?php if ($showActions): ?>
@@ -41,7 +40,6 @@ $showActions = $userLevel !== 3;
             <?php if (!empty($calles)): ?>
                 <?php foreach ($calles as $c): ?>
                     <tr data-id="<?= $c['id_street'] ?>">
-                        <td><?= $c['id_street'] ?></td>
                         <td><?= htmlspecialchars($c['codigo_street']) ?></td>
                         <td><?= htmlspecialchars($c['name_street']) ?></td>
                         <?php if ($showActions): ?>
@@ -58,7 +56,7 @@ $showActions = $userLevel !== 3;
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="<?= $showActions ? 4 : 3 ?>" class="text-center text-muted">No hay calles registradas</td>
+                    <td colspan="<?= $showActions ? 3 : 2 ?>" class="text-center text-muted">No hay calles registradas</td>
                 </tr>
             <?php endif; ?>
         </tbody>
@@ -118,7 +116,15 @@ $(document).ready(function() {
 // Function to handle calle form submission
 $('#calleForm').on('submit', function(e) {
     e.preventDefault();
-    
+
+    // Ensure modal-stored id is included if present (robust against missing hidden inputs)
+    var modalId = $('#calleModal').data('id');
+    if (modalId) {
+        if ($('#calleForm').find('input[name="id_street"]').length === 0) {
+            $('#calleForm').append('<input type="hidden" name="id_street" value="' + modalId + '">');
+        }
+    }
+
     $.ajax({
         url: $(this).attr('action'),
         type: 'POST',
@@ -145,10 +151,22 @@ function editCalle(id) {
         $('#calleModalLabel').text('Editar Calle');
         $('input[name="codigo_street"]').val(data.codigo_street);
         $('input[name="name_street"]').val(data.name_street);
+        // ensure no duplicate hidden id inputs
+        $('#calleForm').find('input[name="id_street"]').remove();
         $('#calleForm').append('<input type="hidden" name="id_street" value="' + id + '">');
+        // also store id on modal element to be extra-safe
+        $('#calleModal').data('id', id);
         $('#calleModal').modal('show');
     });
 }
+
+// Clean up modal when hidden
+$('#calleModal').on('hidden.bs.modal', function() {
+    $('#calleForm').find('input[name="id_street"]').remove();
+    $(this).removeData('id');
+    $('#calleForm')[0].reset();
+    $('#calleModalLabel').text('Nueva Calle');
+});
 
 function deleteCalle(id) {
     showConfirm('¿Eliminar calle?', '¿Está seguro de eliminar esta calle? Esta acción no se puede deshacer.', 'Eliminar', 'Cancelar')

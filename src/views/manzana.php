@@ -154,14 +154,57 @@ $('#manzanaForm').on('submit', function(e) {
 function editManzana(id) {
     // Load manzana data and populate form
     $.getJSON('?view=manzana&mode=get&id=' + id, function(data) {
+        // DEBUG: log server response to help diagnose missing fields
+        console.log('editManzana response:', data);
+
         $('#manzanaModalLabel').text('Editar Manzana');
-        $('input[name="codigo_square"]').val(data.codigo_square);
-        $('select[name="id_street"]').val(data.id_street);
-        $('input[name="name_square"]').val(data.name_square);
+        $('input[name="codigo_square"]').val(data.codigo_square || '');
+        $('select[name="id_street"]').val(data.id_street || '');
+        $('input[name="name_square"]').val(data.name_square || '');
+        // ensure no duplicate hidden id inputs
+        $('#manzanaForm').find('input[name="id_square"]').remove();
         $('#manzanaForm').append('<input type="hidden" name="id_square" value="' + id + '">');
+        $('#manzanaModal').data('id', id);
         $('#manzanaModal').modal('show');
     });
 }
+
+// Ensure id included on submit and clean modal on hide
+$('#manzanaForm').on('submit', function(e) {
+    e.preventDefault();
+    var modalId = $('#manzanaModal').data('id');
+    if (modalId) {
+        if ($('#manzanaForm').find('input[name="id_square"]').length === 0) {
+            $('#manzanaForm').append('<input type="hidden" name="id_square" value="' + modalId + '">');
+        }
+    }
+
+    $.ajax({
+        url: $(this).attr('action'),
+        type: 'POST',
+        data: $(this).serialize(),
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                $('#manzanaModal').modal('hide');
+                showToast('success', response.message);
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showToast('error', response.message);
+            }
+        },
+        error: function(xhr) {
+            showToast('error', 'Error al procesar la solicitud');
+        }
+    });
+});
+
+$('#manzanaModal').on('hidden.bs.modal', function() {
+    $('#manzanaForm').find('input[name="id_square"]').remove();
+    $(this).removeData('id');
+    $('#manzanaForm')[0].reset();
+    $('#manzanaModalLabel').text('Nueva Manzana');
+});
 
 function deleteManzana(id) {
     showConfirm('¿Eliminar manzana?', '¿Está seguro de eliminar esta manzana? Esta acción no se puede deshacer.', 'Eliminar', 'Cancelar')

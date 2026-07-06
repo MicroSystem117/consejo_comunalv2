@@ -279,16 +279,19 @@ if (!empty($_SESSION['user_id']) && isset($conn)) {
 }
 
 // Manejo de operaciones para manzana
+// Manejo de operaciones para manzana
 if ($view === 'manzana' && isset($_GET['mode'])) {
     header('Content-Type: application/json');
-    
-    // Validar CSRF token
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
-        exit;
-    }
-    
+
     $mode = $_GET['mode'];
+
+    // Solo validar CSRF en operaciones de escritura
+    if (in_array($mode, ['save', 'delete'], true)) {
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
+            exit;
+        }
+    }
     
     if ($mode === 'save') {
         try {
@@ -352,32 +355,51 @@ if ($view === 'manzana' && isset($_GET['mode'])) {
 // Manejo de operaciones para calles
 if ($view === 'calles' && isset($_GET['mode'])) {
     header('Content-Type: application/json');
-    
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
-        exit;
-    }
-    
+
     $mode = $_GET['mode'];
+
+    // Solo validar CSRF en operaciones de escritura
+    if (in_array($mode, ['save', 'delete'], true)) {
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido']);
+            exit;
+        }
+    }
     
     if ($mode === 'save') {
         try {
-            $codigo_street = $_POST['codigo_street'] ?? '';
-            $name_street = $_POST['name_street'] ?? '';
-            $id_street = $_POST['id_street'] ?? null;
-            
-            if (empty($codigo_street) || empty($name_street)) {
-                throw new Exception('Todos los campos son requeridos');
-            }
-            
+            $codigo_street = array_key_exists('codigo_street', $_POST) ? trim($_POST['codigo_street']) : null;
+            $name_street = array_key_exists('name_street', $_POST) ? trim($_POST['name_street']) : null;
+            $id_street = !empty($_POST['id_street']) ? $_POST['id_street'] : null;
+
             if ($id_street) {
-                $stmt = $conn->prepare("UPDATE street SET codigo_street = ?, name_street = ? WHERE id_street = ?");
-                $stmt->bind_param('ssi', $codigo_street, $name_street, $id_street);
+                // Update: allow partial updates (only fields provided will be updated)
+                $sets = [];
+                $types = '';
+                $values = [];
+
+                if ($codigo_street !== null) { $sets[] = 'codigo_street = ?'; $types .= 's'; $values[] = $codigo_street; }
+                if ($name_street !== null) { $sets[] = 'name_street = ?'; $types .= 's'; $values[] = $name_street; }
+
+                if (empty($sets)) {
+                    throw new Exception('No hay campos para actualizar');
+                }
+
+                $sql = 'UPDATE street SET ' . implode(', ', $sets) . ' WHERE id_street = ?';
+                $types .= 'i';
+                $values[] = $id_street;
+
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param($types, ...$values);
             } else {
+                // Create: require both fields
+                if (empty($codigo_street) || empty($name_street)) {
+                    throw new Exception('Todos los campos son requeridos');
+                }
                 $stmt = $conn->prepare("INSERT INTO street (codigo_street, name_street) VALUES (?, ?)");
                 $stmt->bind_param('ss', $codigo_street, $name_street);
             }
-            
+
             if ($stmt->execute()) {
                 echo json_encode(['success' => true, 'message' => $id_street ? 'Calle actualizada' : 'Calle creada']);
             } else {
@@ -434,14 +456,31 @@ if ($view === 'familias' && isset($_GET['mode'])) {
             $numero_familia = $_POST['numero_familia'] ?? '';
             $id_family = $_POST['id_family'] ?? null;
             
-            if (empty($surname_family) || empty($id_house)) {
-                throw new Exception('Todos los campos son requeridos');
-            }
-            
             if ($id_family) {
-                $stmt = $conn->prepare("UPDATE family SET surname_family = ?, id_house = ?, numero_familia = ? WHERE id_family = ?");
-                $stmt->bind_param('sisi', $surname_family, $id_house, $numero_familia, $id_family);
+                // Update: allow partial updates
+                $sets = [];
+                $types = '';
+                $values = [];
+
+                if (array_key_exists('surname_family', $_POST)) { $sets[] = 'surname_family = ?'; $types .= 's'; $values[] = $surname_family; }
+                if (array_key_exists('id_house', $_POST)) { $sets[] = 'id_house = ?'; $types .= 'i'; $values[] = $id_house; }
+                if (array_key_exists('numero_familia', $_POST)) { $sets[] = 'numero_familia = ?'; $types .= 's'; $values[] = $numero_familia; }
+
+                if (empty($sets)) {
+                    throw new Exception('No hay campos para actualizar');
+                }
+
+                $sql = 'UPDATE family SET ' . implode(', ', $sets) . ' WHERE id_family = ?';
+                $types .= 'i';
+                $values[] = $id_family;
+
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param($types, ...$values);
             } else {
+                // Create requires surname_family and id_house
+                if (empty($surname_family) || empty($id_house)) {
+                    throw new Exception('Todos los campos son requeridos');
+                }
                 $stmt = $conn->prepare("INSERT INTO family (surname_family, id_house, numero_familia) VALUES (?, ?, ?)");
                 $stmt->bind_param('sis', $surname_family, $id_house, $numero_familia);
             }
@@ -501,14 +540,30 @@ if ($view === 'viviendas' && isset($_GET['mode'])) {
             $id_square = $_POST['id_square'] ?? '';
             $id_house = $_POST['id_house'] ?? null;
             
-            if (empty($number_house) || empty($id_square)) {
-                throw new Exception('Todos los campos son requeridos');
-            }
-            
             if ($id_house) {
-                $stmt = $conn->prepare("UPDATE house SET number_house = ?, id_square = ? WHERE id_house = ?");
-                $stmt->bind_param('sii', $number_house, $id_square, $id_house);
+                // Update: allow partial updates
+                $sets = [];
+                $types = '';
+                $values = [];
+
+                if (array_key_exists('number_house', $_POST)) { $sets[] = 'number_house = ?'; $types .= 's'; $values[] = $number_house; }
+                if (array_key_exists('id_square', $_POST)) { $sets[] = 'id_square = ?'; $types .= 'i'; $values[] = $id_square; }
+
+                if (empty($sets)) {
+                    throw new Exception('No hay campos para actualizar');
+                }
+
+                $sql = 'UPDATE house SET ' . implode(', ', $sets) . ' WHERE id_house = ?';
+                $types .= 'i';
+                $values[] = $id_house;
+
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param($types, ...$values);
             } else {
+                // Create requires both fields
+                if (empty($number_house) || empty($id_square)) {
+                    throw new Exception('Todos los campos son requeridos');
+                }
                 $stmt = $conn->prepare("INSERT INTO house (number_house, id_square) VALUES (?, ?)");
                 $stmt->bind_param('si', $number_house, $id_square);
             }

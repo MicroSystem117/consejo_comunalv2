@@ -48,14 +48,14 @@ try {
         <table id="usersTable" class="table table-striped table-hover" style="width:100%">
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Apellido</th>
-                    <th>Cédula</th>
-                    <th>Nacimiento</th>
-                    <th>Rol</th>
-                    <th>Acciones</th>
-                </tr>
+                        <th class="d-none">ID</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Cédula</th>
+                        <th>Nacimiento</th>
+                        <th>Rol</th>
+                        <th>Acciones</th>
+                    </tr>
             </thead>
             <tbody>
             </tbody>
@@ -169,7 +169,7 @@ usersTable = $('#usersTable').DataTable({
                 dataSrc: 'data'
             },
             columns: [
-                { data: 'id_user', width: '60px' },
+                { data: 'id_user', width: '60px', visible: false },
                 { data: 'name', width: '15%' },
                 { data: 'surname', width: '15%' },
                 { data: 'ci', width: '12%' },
@@ -208,13 +208,16 @@ usersTable = $('#usersTable').DataTable({
             language: {
                 url: baseUrl + '/public/vendor/datatables/es-ES.json'
             },
+            columnDefs: [
+                { targets: 0, visible: false }
+            ],
             autoWidth: true,
             paging: true,
         pagingType: 'simple_numbers',
         pageLength: 10,
         lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'Todos']],
         dom: '<"row mb-2"<"col-sm-6"l><"col-sm-6"f>>t<"row mt-2"<"col-sm-6"i><"col-sm-6"p>>',
-        order: [[0, 'desc']]
+        order: [[1, 'desc']]
     });
     
     // User form submit
@@ -306,7 +309,7 @@ function editUser(id) {
                 $('#pass').val('').removeAttr('required');
                 
                 // Load security questions
-                getSecQuestion(id);
+                getSecQuestion(response.id_user);
                 
                 $('#userModalLabel').html('<i class="bi bi-person-gear"></i> Editar Usuario: ' + (response.name || ''));
                 $('#userAlert').html('');

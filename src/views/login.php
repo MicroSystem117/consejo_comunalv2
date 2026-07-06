@@ -433,15 +433,28 @@ document.addEventListener('DOMContentLoaded', function() {
             method: 'POST',
             body: formData
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+            console.log('Register response status:', r.status);
+            return r.text().then(function(text) {
+                console.log('Register raw response:', text);
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Register invalid JSON:', e, text);
+                    return { status: 'error', message: 'Respuesta inválida del servidor: ' + text };
+                }
+            });
+        })
         .then(function(data) {
+            console.log('Register parsed data:', data);
             if (data.status === 'success') {
                 window.location.href = data.redirect || 'index.php';
             } else {
-                showLoginAlert('error', data.message);
+                showLoginAlert('error', data.message || 'No se recibió mensaje del servidor');
             }
         })
-        .catch(function() {
+        .catch(function(err) {
+            console.error('Register fetch error:', err);
             showLoginAlert('error', 'Error de conexion. Intenta nuevamente.');
         });
     });

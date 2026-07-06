@@ -30,8 +30,14 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-$dbUser = new DbUser();
-$conn = $dbUser->getConnection();
+try {
+    $dbUser = new DbUser();
+    $conn = $dbUser->getConnection();
+} catch (Exception $e) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['status' => 'error', 'message' => 'No se pudo conectar a la base de datos: ' . $e->getMessage()]);
+    exit;
+}
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if ($method !== 'POST') {
@@ -318,79 +324,91 @@ function reset_attempts($conn, $ci, $action, $ip) {
 }
 
 if ($action === 'register') {
-    // Validate CSRF
-    if (!validateCsrfToken()) exit;
-    
-    $name = trim($_POST['name'] ?? '');
-    $surname = trim($_POST['surname'] ?? '');
-    $ci = (int) ($_POST['ci'] ?? 0);
-    $birth = $_POST['birth'] ?? null;
-    $pass = $_POST['pass'] ?? '';
+    try {
+        // Validate CSRF
+        if (!validateCsrfToken()) exit;
+        
+        $name = trim($_POST['name'] ?? '');
+        $surname = trim($_POST['surname'] ?? '');
+        $ci = (int) ($_POST['ci'] ?? 0);
+        $birth = $_POST['birth'] ?? null;
+        $pass = $_POST['pass'] ?? '';
 
-    if (!$ci || !$pass || !$name || !$birth) {
-        echo json_encode(['status' => 'error', 'message' => 'Campos requeridos faltantes']);
-        exit;
-    }
+        if (!$ci || !$pass || !$name || !$birth) {
+            echo json_encode(['status' => 'error', 'message' => 'Campos requeridos faltantes']);
+            exit;
+        }
 
-    $birthDate = DateTime::createFromFormat('Y-m-d', $birth);
-    $birthErrors = DateTime::getLastErrors();
-    if (!$birthDate || $birthErrors['warning_count'] > 0 || $birthErrors['error_count'] > 0) {
-        echo json_encode(['status' => 'error', 'message' => 'Fecha de nacimiento inválida']);
-        exit;
-    }
+        $birthDate = DateTime::createFromFormat('Y-m-d', $birth);
+        $birthErrors = DateTime::getLastErrors();
+    $hasBirthErrors = !is_array($birthErrors)
+        || (($birthErrors['warning_count'] ?? 0) > 0)
+        || (($birthErrors['error_count'] ?? 0) > 0);
 
-    $age = $birthDate->diff(new DateTime())->y;
-    if ($age < 18 || $age > 80) {
-        echo json_encode(['status' => 'error', 'message' => 'Debe tener entre 18 y 80 años para registrarse']);
-        exit;
-    }
+    if (!$birthDate || $hasBirthErrors) {
+        }
 
-    // comprobar si ya existe ci
-    $stmt = $conn->prepare("SELECT id_user FROM `user` WHERE ci = ?");
-    $stmt->bind_param('i', $ci);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    if ($res && $res->num_rows > 0) {
-        echo json_encode(['status' => 'error', 'message' => 'Cedula ya registrada']);
-        exit;
-    }
-    $stmt->close();
+        $age = $birthDate->diff(new DateTime())->y;
+        if ($age < 18 || $age > 80) {
+            echo json_encode(['status' => 'error', 'message' => 'Debe tener entre 18 y 80 años para registrarse']);
+            exit;
+        }
 
-    // Validate password strength server-side
-    function password_meets_criteria($p) {
-        if (strlen($p) < 8) return false;
-        if (!preg_match('/[A-Z]/', $p)) return false;
-        if (!preg_match('/[a-z]/', $p)) return false;
-        if (!preg_match('/[0-9]/', $p)) return false;
-        if (!preg_match('/[^A-Za-z0-9]/', $p)) return false;
-        return true;
-    }
+        // comprobar si ya existe ci
+        error_log('Register start: name=' . $name . ', ci=' . $ci . ', birth=' . $birth);
+        $stmt = $conn->prepare("SELECT id_user FROM `user` WHERE ci = ?");
+        $stmt->bind_param('i', $ci);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res && $res->num_rows > 0) {
+            error_log('Register duplicate CI: ' . $ci);
+            echo json_encode(['status' => 'error', 'message' => 'Cedula ya registrada']);
+            exit;
+        }
+        $stmt->close();
 
-    if (!password_meets_criteria($pass)) {
-        echo json_encode(['status' => 'error', 'message' => 'La contraseña no cumple los requisitos de seguridad']);
-        exit;
-    }
+        // Validate password strength server-side
+        function password_meets_criteria($p) {
+            if (strlen($p) < 8) return false;
+            if (!preg_match('/[A-Z]/', $p)) return false;
+            if (!preg_match('/[a-z]/', $p)) return false;
+            if (!preg_match('/[0-9]/', $p)) return false;
+            if (!preg_match('/[^A-Za-z0-9]/', $p)) return false;
+            return true;
+        }
 
-    $hash = password_hash($pass, PASSWORD_DEFAULT);
-    $id_level = 3;
-    $stmt = $conn->prepare("INSERT INTO `user` (name, surname, ci, birth, pass, id_level) VALUES (?,?,?,?,?,?)");
-    $stmt->bind_param('ssissi', $name, $surname, $ci, $birth, $hash, $id_level);
-    if ($stmt->execute()) {
-        $inserted_id = $stmt->insert_id;
-        $_SESSION['user_id'] = $inserted_id;
-        $_SESSION['id_level'] = $id_level;
-        $_SESSION['user_name'] = $name;
-        $_SESSION['user_surname'] = $surname;
-        $_SESSION['user_fullname'] = trim($name . ' ' . $surname);
-        $_SESSION['user_ci'] = $ci;
-        $_SESSION['user_birth'] = $birth;
-        // Regenerate session ID for security
-        session_regenerate_id(true);
-        echo json_encode(['status' => 'success', 'message' => 'Registro exitoso', 'user_id' => $inserted_id, 'ci' => $ci, 'redirect' => $base_url . '/index.php']);
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'Error al registrar']);
+        if (!password_meets_criteria($pass)) {
+            echo json_encode(['status' => 'error', 'message' => 'La contraseña no cumple los requisitos de seguridad']);
+            exit;
+        }
+
+        $hash = password_hash($pass, PASSWORD_DEFAULT);
+        $id_level = 3;
+        error_log('Register insert attempt: ci=' . $ci . ', name=' . $name);
+        $stmt = $conn->prepare("INSERT INTO `user` (name, surname, ci, birth, pass, id_level) VALUES (?,?,?,?,?,?)");
+        $stmt->bind_param('ssissi', $name, $surname, $ci, $birth, $hash, $id_level);
+        if ($stmt->execute()) {
+            error_log('Register insert success: inserted_id=' . $stmt->insert_id);
+            $inserted_id = $stmt->insert_id;
+            $_SESSION['user_id'] = $inserted_id;
+            $_SESSION['id_level'] = $id_level;
+            $_SESSION['user_name'] = $name;
+            $_SESSION['user_surname'] = $surname;
+            $_SESSION['user_fullname'] = trim($name . ' ' . $surname);
+            $_SESSION['user_ci'] = $ci;
+            $_SESSION['user_birth'] = $birth;
+            // Regenerate session ID for security
+            session_regenerate_id(true);
+            echo json_encode(['status' => 'success', 'message' => 'Registro exitoso', 'user_id' => $inserted_id, 'ci' => $ci, 'redirect' => $base_url . '/index.php']);
+        } else {
+            error_log('Register insert failed: ' . $stmt->error);
+            echo json_encode(['status' => 'error', 'message' => 'Error al registrar: ' . $stmt->error]);
+        }
+        $stmt->close();
+    } catch (Exception $e) {
+        error_log('Register error: ' . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => 'No se pudo completar el registro: ' . $e->getMessage()]);
     }
-    $stmt->close();
     exit;
 }
 

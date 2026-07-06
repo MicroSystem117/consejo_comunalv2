@@ -21,22 +21,25 @@
     }
     
     // Logout form handler
-    document.getElementById('logoutForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        var formData = new FormData(this);
-        var logoutUrl = '<?= $base_url ?>/src/controllers/auth.php';
-        fetch(logoutUrl, {
-            method: 'POST',
-            body: formData
-        }).then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.redirect) {
-                window.location.href = data.redirect;
-            } else {
-                window.location.href = '<?= $base_url ?>';
-            }
+    var logoutForm = document.getElementById('logoutForm');
+    if (logoutForm) {
+        logoutForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var formData = new FormData(this);
+            var logoutUrl = '<?= $base_url ?>/src/controllers/auth.php';
+            fetch(logoutUrl, {
+                method: 'POST',
+                body: formData
+            }).then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    window.location.href = '<?= $base_url ?>';
+                }
+            });
         });
-    });
+    }
     
     // Toggle Password Visibility
     function togglePassword(inputId, button) {
@@ -54,38 +57,41 @@
     }
     
     // Password validation for change password modal
-    document.getElementById('new_password').addEventListener('input', function() {
-        var pass = this.value;
-        var rules = [
-            { id: 'ruleLengthCP', valid: pass.length >= 8 },
-            { id: 'ruleUpperCP', valid: /[A-Z]/.test(pass) },
-            { id: 'ruleLowerCP', valid: /[a-z]/.test(pass) },
-            { id: 'ruleDigitCP', valid: /[0-9]/.test(pass) },
-            { id: 'ruleSpecialCP', valid: /[^A-Za-z0-9]/.test(pass) }
-        ];
-        
-        rules.forEach(function(r) {
-            var el = document.getElementById(r.id);
-            if (el) {
-                var icon = el.querySelector('i');
-                if (r.valid) {
-                    el.classList.add('text-success');
-                    el.classList.remove('text-muted');
-                    if (icon) {
-                        icon.classList.remove('bi-circle');
-                        icon.classList.add('bi-check-circle');
-                    }
-                } else {
-                    el.classList.remove('text-success');
-                    el.classList.add('text-muted');
-                    if (icon) {
-                        icon.classList.remove('bi-check-circle');
-                        icon.classList.add('bi-circle');
+    var newPasswordInput = document.getElementById('new_password');
+    if (newPasswordInput) {
+        newPasswordInput.addEventListener('input', function() {
+            var pass = this.value;
+            var rules = [
+                { id: 'ruleLengthCP', valid: pass.length >= 8 },
+                { id: 'ruleUpperCP', valid: /[A-Z]/.test(pass) },
+                { id: 'ruleLowerCP', valid: /[a-z]/.test(pass) },
+                { id: 'ruleDigitCP', valid: /[0-9]/.test(pass) },
+                { id: 'ruleSpecialCP', valid: /[^A-Za-z0-9]/.test(pass) }
+            ];
+            
+            rules.forEach(function(r) {
+                var el = document.getElementById(r.id);
+                if (el) {
+                    var icon = el.querySelector('i');
+                    if (r.valid) {
+                        el.classList.add('text-success');
+                        el.classList.remove('text-muted');
+                        if (icon) {
+                            icon.classList.remove('bi-circle');
+                            icon.classList.add('bi-check-circle');
+                        }
+                    } else {
+                        el.classList.remove('text-success');
+                        el.classList.add('text-muted');
+                        if (icon) {
+                            icon.classList.remove('bi-check-circle');
+                            icon.classList.add('bi-circle');
+                        }
                     }
                 }
-            }
+            });
         });
-    });
+    }
     
     // Password form handler
     $('#passwordForm').on('submit', function(e) {

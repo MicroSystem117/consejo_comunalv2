@@ -25,7 +25,6 @@ $active_page = 'familias';
     <table class="table table-striped table-hover table-sm" id="familiasTable">
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Apellido Familia</th>
                 <th>Vivienda</th>
                 <th>Calle</th>
@@ -37,7 +36,6 @@ $active_page = 'familias';
             <?php if (!empty($familias)): ?>
                 <?php foreach ($familias as $f): ?>
                     <tr data-id="<?= $f['id_family'] ?>">
-                        <td><?= $f['id_family'] ?></td>
                         <td><?= htmlspecialchars($f['surname_family']) ?></td>
                         <td><?= htmlspecialchars($f['number_house'] ?? 'Sin asignar') ?></td>
                         <td><?= htmlspecialchars($f['name_street'] ?? 'Sin asignar') ?></td>
@@ -54,7 +52,7 @@ $active_page = 'familias';
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="6" class="text-center text-muted">No hay familias registradas</td>
+                    <td colspan="5" class="text-center text-muted">No hay familias registradas</td>
                 </tr>
             <?php endif; ?>
         </tbody>
@@ -127,7 +125,14 @@ $(document).ready(function() {
 // Function to handle familia form submission
 $('#familiaForm').on('submit', function(e) {
     e.preventDefault();
-    
+    // Ensure modal-stored id is included if present
+    var modalId = $('#familiaModal').data('id');
+    if (modalId) {
+        if ($('#familiaForm').find('input[name="id_family"]').length === 0) {
+            $('#familiaForm').append('<input type="hidden" name="id_family" value="' + modalId + '">');
+        }
+    }
+
     $.ajax({
         url: $(this).attr('action'),
         type: 'POST',
@@ -155,10 +160,21 @@ function editFamilia(id) {
         $('input[name="surname_family"]').val(data.surname_family);
         $('select[name="id_house"]').val(data.id_house);
         $('input[name="numero_familia"]').val(data.numero_familia);
+        // remove previous hidden id if exists and set modal data
+        $('#familiaForm').find('input[name="id_family"]').remove();
         $('#familiaForm').append('<input type="hidden" name="id_family" value="' + id + '">');
+        $('#familiaModal').data('id', id);
         $('#familiaModal').modal('show');
     });
 }
+
+// Clean up modal on hide
+$('#familiaModal').on('hidden.bs.modal', function() {
+    $('#familiaForm').find('input[name="id_family"]').remove();
+    $(this).removeData('id');
+    $('#familiaForm')[0].reset();
+    $('#familiaModalLabel').text('Nueva Familia');
+});
 
 function deleteFamilia(id) {
     showConfirm('¿Eliminar familia?', '¿Está seguro de eliminar esta familia? Esta acción no se puede deshacer.', 'Eliminar', 'Cancelar')

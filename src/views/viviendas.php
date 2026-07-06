@@ -25,7 +25,6 @@ $active_page = 'viviendas';
     <table class="table table-striped table-hover table-sm" id="viviendasTable">
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Número</th>
                 <th>Manzana</th>
                 <th>Calle</th>
@@ -36,7 +35,6 @@ $active_page = 'viviendas';
             <?php if (!empty($viviendas)): ?>
                 <?php foreach ($viviendas as $v): ?>
                     <tr data-id="<?= $v['id_house'] ?>">
-                        <td><?= $v['id_house'] ?></td>
                         <td><?= htmlspecialchars($v['number_house']) ?></td>
                         <td><?= htmlspecialchars($v['codigo_square'] ?? 'Sin asignar') ?></td>
                         <td><?= htmlspecialchars($v['name_street'] ?? 'Sin asignar') ?></td>
@@ -52,7 +50,7 @@ $active_page = 'viviendas';
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="5" class="text-center text-muted">No hay viviendas registradas</td>
+                    <td colspan="4" class="text-center text-muted">No hay viviendas registradas</td>
                 </tr>
             <?php endif; ?>
         </tbody>
@@ -122,11 +120,36 @@ $(document).ready(function() {
 // Function to handle vivienda form submission
 $('#viviendaForm').on('submit', function(e) {
     e.preventDefault();
-    
+    // Ensure modal-stored id is included if present
+    var modalId = $('#viviendaModal').data('id');
+    if (modalId) {
+        if ($('#viviendaForm').find('input[name="id_house"]').length === 0) {
+            $('#viviendaForm').append('<input type="hidden" name="id_house" value="' + modalId + '">');
+        }
+    }
+    // If editing and the select for id_square is empty, temporarily remove its name and required
+    var $select = $('#viviendaForm').find('select[name="id_square"]');
+    var selectName = $select.attr('name');
+    var selectWasRequired = $select.prop('required');
+    var removedSelect = false;
+    if (modalId && (!$select.val() || $select.val() === '')) {
+        $select.removeAttr('name');
+        $select.prop('required', false);
+        removedSelect = true;
+    }
+
+    var dataToSend = $(this).serialize();
+
+    // restore select attributes
+    if (removedSelect) {
+        $select.attr('name', selectName);
+        if (selectWasRequired) $select.prop('required', true);
+    }
+
     $.ajax({
         url: $(this).attr('action'),
         type: 'POST',
-        data: $(this).serialize(),
+        data: dataToSend,
         dataType: 'json',
         success: function(response) {
             if (response.success) {
@@ -147,6 +170,8 @@ function resetViviendaForm() {
     $('#viviendaForm')[0].reset();
     $('#viviendaForm').find('input[name="id_house"]').remove();
     $('#viviendaModalLabel').text('Nueva Vivienda');
+        // ensure select is required by default for new records
+        $('#viviendaForm').find('select[name="id_square"]').prop('required', true);
 }
 
 function editVivienda(id) {
@@ -154,15 +179,49 @@ function editVivienda(id) {
     $.getJSON('?view=viviendas&mode=get&id=' + id, function(data) {
         resetViviendaForm();
         $('#viviendaModalLabel').text('Editar Vivienda');
-        $('input[name="number_house"]').val(data.number_house);
-        $('select[name="id_square"]').val(data.id_square);
+
+        // number_house: prefer server value, fallback to visible table cell
+        var numberVal = data.number_house || '';
+        if (!numberVal) {
+            var rowText = $('tr[data-id="' + id + '"]').find('td').first().text() || '';
+            numberVal = rowText.trim();
+        }
+        $('input[name="number_house"]').val(numberVal);
+
+        // Ensure select has the option for id_square; if not, try to add a friendly option
+        var $select = $('select[name="id_square"]');
+        var squareId = data.id_square || '';
+        if (squareId && $select.find('option[value="' + squareId + '"]').length === 0) {
+            var label = data.codigo_square ? (data.codigo_square + ' - ' + (data.name_street || '')) : ('Plaza ' + squareId);
+            $select.append('<option value="' + squareId + '">' + label + '</option>');
+        }
+        $select.val(squareId || '');
+        // If editing and there's no square selected, disable HTML5 required so Enter doesn't block submission
+        if (!squareId) {
+            $select.prop('required', false);
+            $('#viviendaModal').data('clearSelectRequired', true);
+        } else {
+            $select.prop('required', true);
+            $('#viviendaModal').removeData('clearSelectRequired');
+        }
+
+        // ensure no duplicate hidden id inputs
+        $('#viviendaForm').find('input[name="id_house"]').remove();
         $('#viviendaForm').append('<input type="hidden" name="id_house" value="' + id + '">');
+        $('#viviendaModal').data('id', id);
         $('#viviendaModal').modal('show');
     });
 }
 
 $('#viviendaModal').on('hidden.bs.modal', function() {
     resetViviendaForm();
+    $(this).removeData('id');
+        // restore select required if we had cleared it
+        var $select = $('#viviendaForm').find('select[name="id_square"]');
+        if ($(this).data('clearSelectRequired')) {
+            $select.prop('required', true);
+            $(this).removeData('clearSelectRequired');
+        }
 });
 
 function deleteVivienda(id) {

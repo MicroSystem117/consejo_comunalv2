@@ -1,11 +1,32 @@
 <?php
 // Controller for Backup and Restore operations
-session_start();
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+set_error_handler(function ($severity, $message, $file, $line) {
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once __DIR__ . '/../helpers/sql_import.php';
 
 // Verify user is authenticated
 if (!isset($_SESSION['user_id'])) {
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'No autorizado']);
+    exit;
+}
+
+if (!isset($_GET['mode']) && !isset($_GET['action']) && !isset($_POST['action'])) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Acción no especificada']);
+    exit;
+}
+
+if (isset($_GET['action']) && $_GET['action'] === 'restore' && !isset($_FILES['backup_file'])) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'No se recibió ningún archivo.']);
     exit;
 }
 
@@ -71,38 +92,8 @@ function performBackup() {
             $allContent .= "-- ============================================\n";
             $allContent .= "-- Base de datos: {$db}\n";
             $allContent .= "-- ============================================\n\n";
-            
-            // Detect dump binary (mysqldump or mariadb-dump) and use it if available
-            $dumpCmd = trim(shell_exec('command -v mysqldump 2>/dev/null')) ?: trim(shell_exec('command -v mariadb-dump 2>/dev/null'));
 
-            if (!empty($dumpCmd)) {
-                $escapedDump = escapeshellcmd($dumpCmd);
-                $cmdParts = [$escapedDump, '--host=' . escapeshellarg($host), '--user=' . escapeshellarg($user)];
-                if (!empty($pass)) {
-                    $cmdParts[] = '--password=' . escapeshellarg($pass);
-                }
-                $cmdParts[] = '--add-drop-table';
-                $cmdParts[] = '--single-transaction';
-                $cmdParts[] = '--routines';
-                $cmdParts[] = '--triggers';
-                $cmdParts[] = escapeshellarg($db);
-
-                $cmd = implode(' ', $cmdParts);
-
-                $output = [];
-                $returnVar = 0;
-                exec($cmd . ' 2>/dev/null', $output, $returnVar);
-
-                if ($returnVar === 0 && !empty($output)) {
-                    $allContent .= implode("\n", $output) . "\n";
-                } else {
-                    // Fallback to manual dump if dump command fails
-                    $allContent .= getManualDump($host, $user, $pass, $db);
-                }
-            } else {
-                // No dump binary found; use manual PHP dump
-                $allContent .= getManualDump($host, $user, $pass, $db);
-            }
+            $allContent .= getManualDump($host, $user, $pass, $db);
         }
         
         $allContent .= "\nSET FOREIGN_KEY_CHECKS = 1;\n";
@@ -136,7 +127,8 @@ function performBackup() {
 
 function getManualDump($host, $user, $pass, $db) {
     $content = '';
-    
+
+    mysqli_report(MYSQLI_REPORT_OFF);
     $conn = new mysqli($host, $user, $pass, $db);
     if ($conn->connect_error) {
         return $content;
@@ -194,74 +186,86 @@ function performRestore() {
         }
 
         $backupFile = $_FILES['backup_file']['tmp_name'];
-        
-        $host = '127.0.0.1';
-        $user = 'root';
-        $pass = '';
+        $originalName = $_FILES['backup_file']['name'] ?? '';
 
-        // Detectar el binario correcto en Arch Linux o cualquier otro sistema
-        $os = PHP_OS;
-        $binary = (stripos($os, 'WIN') === 0) ? 'mysql' : (trim(shell_exec('command -v mariadb 2>/dev/null')) ?: 'mysql');
-
-        /**
-         * NOTA TÉCNICA PARA PROYECTO III:
-         * Para evitar el error "No database selected", forzamos la creación de las DB
-         * y usamos el flag --one-database o procesamos el archivo de forma que 
-         * el motor sepa dónde escribir.
-         */
-        
-        // 1. Aseguramos que la base de datos unificada exista antes de restaurar
-        $conn = new mysqli($host, $user, $pass);
-        $conn->query("CREATE DATABASE IF NOT EXISTS comunity");
-        $conn->close();
-
-        // 2. Ejecutamos la restauración. 
-        // Usamos escapeshellarg por seguridad y redirección de entrada nativa.
-        // Si el archivo ya tiene "USE database;", esto funcionará perfecto.
-        $cmd = "{$binary} --host={$host} --user={$user} " . (!empty($pass) ? "-p{$pass} " : "") . "-f < " . escapeshellarg($backupFile);
-        
-        $output = [];
-        $returnVar = 0;
-        exec($cmd, $output, $returnVar);
-
-        if ($returnVar === 0) {
-            echo json_encode(['success' => true, 'message' => '¡Sistema restaurado con éxito!']);
-        } else {
-            // Intentamos capturar el error del sistema para el log
-            $errorMsg = !empty($output) ? implode("\n", $output) : 'Error en el motor de base de datos.';
-            throw new Exception('Error interno: ' . $errorMsg);
+        if (!is_file($backupFile)) {
+            throw new Exception('No se encontró el archivo subido.');
         }
 
-    } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        if (!preg_match('/\.sql$/i', $originalName)) {
+            throw new Exception('El archivo debe tener extensión .sql.');
+        }
+
+        if (filesize($backupFile) === false || filesize($backupFile) === 0) {
+            throw new Exception('El archivo está vacío.');
+        }
+
+        $sql = file_get_contents($backupFile);
+        if ($sql === false || trim($sql) === '') {
+            throw new Exception('No se pudo leer o el archivo SQL está vacío.');
+        }
+
+        $dbName = 'comunity';
+
+        // Create a pre-restore backup of the current database state
+        $backupDir = __DIR__ . '/../../backups';
+        if (!is_dir($backupDir)) {
+            mkdir($backupDir, 0755, true);
+        }
+        $preFile = $backupDir . '/pre_restore_' . date('Y-m-d_H-i-s') . '.sql';
+        $preContent = "-- Pre-restore backup\n-- Fecha: " . date('Y-m-d H:i:s') . "\n\n";
+        $preContent .= "SET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS = 0;\n\n";
+        $preContent .= getManualDump('127.0.0.1', 'root', '', $dbName);
+        $preContent .= "\nSET FOREIGN_KEY_CHECKS = 1;\n";
+        @file_put_contents($preFile, $preContent);
+
+        // Perform import allowing schema changes (drop/create) to fully restore
+        importSqlFile($backupFile, '127.0.0.1', 'root', '', $dbName, ['allow_schema' => true]);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Respaldo restaurado correctamente en la base de datos "comunity". Se creó un respaldo previo: ' . basename($preFile)
+        ]);
+    } catch (Throwable $e) {
+        error_log('Restore error: ' . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Error al restaurar: ' . $e->getMessage()]);
     }
 }
 
 function listBackups() {
     header('Content-Type: application/json');
-    
-    $backupDir = __DIR__ . '/../../backups';
-    
-    $backups = [];
-    
-    if (is_dir($backupDir)) {
-        $files = glob($backupDir . '/backup_*.sql');
-        foreach ($files as $file) {
-            $filename = basename($file);
-            $backups[] = [
-                'name' => $filename,
-                'date' => date('Y-m-d H:i:s', filemtime($file)),
-                'size' => formatBytes(filesize($file))
-            ];
+
+    try {
+        $backupDir = __DIR__ . '/../../backups';
+        $backups = [];
+
+        if (is_dir($backupDir)) {
+            $files = glob($backupDir . '/backup_*.sql');
+            if ($files !== false) {
+                foreach ($files as $file) {
+                    if (!is_file($file)) {
+                        continue;
+                    }
+
+                    $filename = basename($file);
+                    $backups[] = [
+                        'name' => $filename,
+                        'date' => date('Y-m-d H:i:s', filemtime($file)),
+                        'size' => formatBytes(filesize($file))
+                    ];
+                }
+
+                usort($backups, function ($a, $b) {
+                    return strtotime($b['date']) - strtotime($a['date']);
+                });
+            }
         }
-        
-        // Sort by date descending
-        usort($backups, function($a, $b) {
-            return strtotime($b['date']) - strtotime($a['date']);
-        });
+
+        echo json_encode(['backups' => $backups]);
+    } catch (Throwable $e) {
+        error_log('List backups error: ' . $e->getMessage());
+        echo json_encode(['backups' => [], 'error' => $e->getMessage()]);
     }
-    
-    echo json_encode(['backups' => $backups]);
 }
 
 function deleteBackup() {

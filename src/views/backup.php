@@ -41,9 +41,9 @@ $active_page = 'backup';
             </div>
             <div class="card-body">
                 <p class="card-text">Restaura la base de datos desde un archivo de respaldo SQL previamente descargado.</p>
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    <strong>Advertencia:</strong> Esta operación reemplazará todos los datos actuales.
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Información:</strong> Se importará el archivo SQL seleccionado en la base de datos <strong>comunity</strong>.
                 </div>
                 <form id="restoreForm" enctype="multipart/form-data" accept-charset="UTF-8">
                     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
@@ -137,7 +137,7 @@ $('#restoreForm').on('submit', function(e) {
     }
     
     var form = this;
-    showConfirm('¿Restaurar respaldo?', 'Esta acción reemplazará todos los datos actuales.', 'Continuar', 'Cancelar')
+    showConfirm('¿Restaurar respaldo?', 'Esta acción importará el respaldo en la base de datos actual.', 'Continuar', 'Cancelar')
         .then(function(confirmed) {
             if (!confirmed) return;
 
@@ -147,7 +147,7 @@ $('#restoreForm').on('submit', function(e) {
             var formData = new FormData(form);
 
             $.ajax({
-                url: window.baseUrl + '/index.php?view=backup&action=restore',
+                url: window.baseUrl + '/src/controllers/backup.php?action=restore',
                 type: 'POST',
                 data: formData,
                 processData: false,
@@ -168,7 +168,19 @@ $('#restoreForm').on('submit', function(e) {
                 error: function(xhr, status, error) {
                     $('#restoreProgress').hide();
                     $('#restoreBtn').prop('disabled', false);
-                    showToast('error', 'Error al restaurar: ' + error);
+                    var responseText = (xhr.responseText || '').trim();
+                    var message = 'Error al restaurar: ' + error;
+                    if (responseText) {
+                        try {
+                            var parsed = JSON.parse(responseText);
+                            if (parsed && parsed.message) {
+                                message = parsed.message;
+                            }
+                        } catch (e) {
+                            message = responseText;
+                        }
+                    }
+                    showToast('error', message);
                 }
             });
         });
@@ -176,7 +188,7 @@ $('#restoreForm').on('submit', function(e) {
 
 // Load backup history
 function loadBackupHistory() {
-    $.getJSON('?view=backup&mode=list', function(data) {
+    $.getJSON(window.baseUrl + '/src/controllers/backup.php?mode=list', function(data) {
         var tbody = $('#backupHistoryBody');
         tbody.empty();
         
